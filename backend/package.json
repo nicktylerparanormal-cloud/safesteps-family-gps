@@ -1,0 +1,16 @@
+{
+  "name": "safesteps-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hosted API for SafeSteps Family GPS pairing and location updates.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

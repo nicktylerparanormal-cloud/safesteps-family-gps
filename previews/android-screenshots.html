@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Family Track Android Preview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #687386;
+      --line: #d9e0eb;
+      --blue: #1f6feb;
+      --soft: #f5f8fc;
+      --ok: #147a45;
+      font-family: Inter, Roboto, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #eef3f8;
+      color: var(--ink);
+    }
+
+    .stage {
+      min-height: 100vh;
+      padding: 36px;
+      display: grid;
+      gap: 26px;
+      align-items: start;
+      grid-template-columns: repeat(3, minmax(280px, 1fr));
+    }
+
+    .phone {
+      width: min(100%, 360px);
+      min-height: 740px;
+      margin: 0 auto;
+      border: 10px solid #111827;
+      border-radius: 34px;
+      background: #ffffff;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(26, 39, 58, 0.22);
+      position: relative;
+    }
+
+    .statusbar {
+      height: 28px;
+      padding: 8px 18px 0;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      color: #263244;
+    }
+
+    .content {
+      padding: 18px 22px 28px;
+    }
+
+    h1 {
+      font-size: 28px;
+      line-height: 1.15;
+      margin: 0;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 15px;
+      margin: 8px 0 20px;
+    }
+
+    .field {
+      border-bottom: 1px solid var(--line);
+      padding: 14px 0 10px;
+      color: #3a4657;
+      font-size: 15px;
+    }
+
+    .value {
+      color: #111827;
+    }
+
+    .button {
+      height: 44px;
+      border-radius: 4px;
+      margin-top: 10px;
+      display: grid;
+      place-items: center;
+      background: #f3f6fb;
+      border: 1px solid #cbd5e1;
+      color: #172033;
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #ffffff;
+    }
+
+    .danger {
+      color: #9f1239;
+      border-color: #fecdd3;
+      background: #fff1f2;
+    }
+
+    .status {
+      margin-top: 18px;
+      font-size: 14px;
+      line-height: 1.65;
+      white-space: pre-line;
+      color: #263244;
+    }
+
+    .dialog-scrim {
+      position: absolute;
+      inset: 28px 0 0;
+      background: rgba(17, 24, 39, 0.38);
+      display: grid;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .dialog {
+      background: white;
+      border-radius: 3px;
+      padding: 22px;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.26);
+    }
+
+    .dialog h2 {
+      font-size: 21px;
+      margin: 0 0 12px;
+      letter-spacing: 0;
+    }
+
+    .dialog p {
+      color: #384558;
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.48;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+      margin-top: 24px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .notification {
+      margin: 22px;
+      background: #f8fafc;
+      border: 1px solid #dce4ef;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .notification-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .notification-text {
+      font-size: 14px;
+      color: #4b5563;
+      line-height: 1.45;
+    }
+
+    .notification-action {
+      margin-top: 14px;
+      color: var(--blue);
+      text-transform: uppercase;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .caption {
+      text-align: center;
+      margin: 12px 0 0;
+      color: #465468;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 980px) {
+      .stage {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section>
+      <div class="phone">
+        <div class="statusbar"><span>13:08</span><span>5G 82%</span></div>
+        <div class="content">
+          <h1>Family Track</h1>
+          <p class="subtitle">Child phone tracker. Location sharing is visible and can be stopped from the notification.</p>
+          <div class="field value">Alex</div>
+          <div class="field value">https://api.familytrack.app/location-pings</div>
+          <div class="field value">ft_live_pair_82N...</div>
+          <div class="button">Save setup</div>
+          <div class="button">Grant location permission</div>
+          <div class="button">Enable background tracking permission</div>
+          <div class="button">Allow tracking notification</div>
+          <div class="button primary">Start live tracking</div>
+          <div class="button danger">Stop tracking</div>
+          <div class="status">Setup status
+Foreground location: yes
+Background location: yes
+Notifications: yes
+Endpoint saved: yes
+Device token saved: yes
+Tracking enabled: no</div>
+        </div>
+      </div>
+      <p class="caption">Setup screen</p>
+    </section>
+
+    <section>
+      <div class="phone">
+        <div class="statusbar"><span>13:08</span><span>5G 82%</span></div>
+        <div class="content">
+          <h1>Family Track</h1>
+          <p class="subtitle">Child phone tracker. Location sharing is visible and can be stopped from the notification.</p>
+          <div class="field value">Alex</div>
+          <div class="field value">https://api.familytrack.app/location-pings</div>
+          <div class="field value">ft_live_pair_82N...</div>
+          <div class="button">Save setup</div>
+          <div class="button">Grant location permission</div>
+          <div class="button">Enable background tracking permission</div>
+        </div>
+        <div class="dialog-scrim">
+          <div class="dialog">
+            <h2>Background location</h2>
+            <p>Family Track collects this phone's location while the app is closed or the phone is locked so parents can see live safety updates and route history. Tracking is visible in an ongoing notification and can be stopped at any time.</p>
+            <div class="dialog-actions">
+              <span>Cancel</span>
+              <span>Continue</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Background location disclosure</p>
+    </section>
+
+    <section>
+      <div class="phone" style="background:#eef2f7;">
+        <div class="statusbar"><span>13:09</span><span>5G 81%</span></div>
+        <div class="notification">
+          <div class="notification-title">Family Track is active</div>
+          <div class="notification-text">Updated 51.50148, -0.14063</div>
+          <div class="notification-action">Stop</div>
+        </div>
+        <div class="content">
+          <h1>Family Track</h1>
+          <p class="subtitle">Live sharing is running. Parents can see safety updates from this phone.</p>
+          <div class="status">Setup status
+Foreground location: yes
+Background location: yes
+Notifications: yes
+Endpoint saved: yes
+Device token saved: yes
+Tracking enabled: yes</div>
+        </div>
+      </div>
+      <p class="caption">Persistent tracking notification</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "safesteps-family-gps",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SafeSteps Family GPS backend and parent dashboard.",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "check": "node --check backend/server.js && node --check parent-web/app.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

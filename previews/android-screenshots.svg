@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="860" viewBox="0 0 1320 860">
+  <rect width="1320" height="860" fill="#eef3f8"/>
+  <style>
+    .label{font:700 24px Arial,sans-serif;fill:#233044}
+    .status{font:500 13px Arial,sans-serif;fill:#263244}
+    .h1{font:700 30px Arial,sans-serif;fill:#172033}
+    .p{font:400 16px Arial,sans-serif;fill:#687386}
+    .field{font:400 15px Arial,sans-serif;fill:#172033}
+    .btn{font:700 13px Arial,sans-serif;fill:#172033}
+    .btnw{font:700 13px Arial,sans-serif;fill:#fff}
+    .small{font:400 14px Arial,sans-serif;fill:#263244}
+  </style>
+
+  <g transform="translate(60 40)">
+    <rect x="0" y="0" width="350" height="740" rx="34" fill="#111827"/>
+    <rect x="10" y="10" width="330" height="720" rx="25" fill="#fff"/>
+    <text x="30" y="38" class="status">13:08</text>
+    <text x="270" y="38" class="status">5G 82%</text>
+    <text x="32" y="92" class="h1">Family Track</text>
+    <text x="32" y="126" class="p">Child phone tracker. Location</text>
+    <text x="32" y="148" class="p">sharing is visible and can be stopped.</text>
+    <line x1="32" y1="202" x2="318" y2="202" stroke="#d9e0eb"/>
+    <text x="32" y="190" class="field">Alex</text>
+    <line x1="32" y1="258" x2="318" y2="258" stroke="#d9e0eb"/>
+    <text x="32" y="246" class="field">https://api.familytrack.app/location-pings</text>
+    <line x1="32" y1="314" x2="318" y2="314" stroke="#d9e0eb"/>
+    <text x="32" y="302" class="field">ft_live_pair_82N...</text>
+    <rect x="32" y="332" width="286" height="44" rx="4" fill="#f3f6fb" stroke="#cbd5e1"/>
+    <text x="128" y="360" class="btn">SAVE SETUP</text>
+    <rect x="32" y="386" width="286" height="44" rx="4" fill="#f3f6fb" stroke="#cbd5e1"/>
+    <text x="82" y="414" class="btn">GRANT LOCATION PERMISSION</text>
+    <rect x="32" y="440" width="286" height="44" rx="4" fill="#f3f6fb" stroke="#cbd5e1"/>
+    <text x="54" y="468" class="btn">ENABLE BACKGROUND TRACKING</text>
+    <rect x="32" y="494" width="286" height="44" rx="4" fill="#f3f6fb" stroke="#cbd5e1"/>
+    <text x="76" y="522" class="btn">ALLOW TRACKING NOTIFICATION</text>
+    <rect x="32" y="548" width="286" height="44" rx="4" fill="#1f6feb" stroke="#1f6feb"/>
+    <text x="100" y="576" class="btnw">START LIVE TRACKING</text>
+    <rect x="32" y="602" width="286" height="44" rx="4" fill="#fff1f2" stroke="#fecdd3"/>
+    <text x="124" y="630" class="btn" fill="#9f1239">STOP TRACKING</text>
+    <text x="32" y="682" class="small">Setup status</text>
+    <text x="32" y="706" class="small">Foreground location: yes</text>
+    <text x="32" y="730" class="small">Background location: yes</text>
+    <text x="94" y="806" class="label">Setup screen</text>
+  </g>
+
+  <g transform="translate(485 40)">
+    <rect x="0" y="0" width="350" height="740" rx="34" fill="#111827"/>
+    <rect x="10" y="10" width="330" height="720" rx="25" fill="#fff"/>
+    <text x="30" y="38" class="status">13:08</text>
+    <text x="270" y="38" class="status">5G 82%</text>
+    <text x="32" y="92" class="h1">Family Track</text>
+    <text x="32" y="126" class="p">Child phone tracker. Location</text>
+    <text x="32" y="148" class="p">sharing is visible and can be stopped.</text>
+    <rect x="10" y="38" width="330" height="692" rx="0" fill="#111827" opacity=".38"/>
+    <rect x="35" y="250" width="280" height="250" rx="4" fill="#fff"/>
+    <text x="58" y="292" class="h1" font-size="22">Background location</text>
+    <text x="58" y="330" class="p">Family Track collects this phone's</text>
+    <text x="58" y="354" class="p">location while the app is closed or</text>
+    <text x="58" y="378" class="p">the phone is locked so parents can</text>
+    <text x="58" y="402" class="p">see live safety updates and route</text>
+    <text x="58" y="426" class="p">history. Tracking is visible.</text>
+    <text x="160" y="470" class="btn" fill="#1f6feb">CANCEL</text>
+    <text x="230" y="470" class="btn" fill="#1f6feb">CONTINUE</text>
+    <text x="36" y="806" class="label">Background permission disclosure</text>
+  </g>
+
+  <g transform="translate(910 40)">
+    <rect x="0" y="0" width="350" height="740" rx="34" fill="#111827"/>
+    <rect x="10" y="10" width="330" height="720" rx="25" fill="#eef2f7"/>
+    <text x="30" y="38" class="status">13:09</text>
+    <text x="270" y="38" class="status">5G 81%</text>
+    <rect x="32" y="72" width="286" height="132" rx="8" fill="#f8fafc" stroke="#dce4ef"/>
+    <text x="54" y="112" class="h1" font-size="18">Family Track is active</text>
+    <text x="54" y="146" class="p">Updated 51.50148, -0.14063</text>
+    <text x="54" y="180" class="btn" fill="#1f6feb">STOP</text>
+    <text x="32" y="260" class="h1">Family Track</text>
+    <text x="32" y="294" class="p">Live sharing is running. Parents can</text>
+    <text x="32" y="316" class="p">see safety updates from this phone.</text>
+    <text x="32" y="370" class="small">Setup status</text>
+    <text x="32" y="394" class="small">Foreground location: yes</text>
+    <text x="32" y="418" class="small">Background location: yes</text>
+    <text x="32" y="442" class="small">Notifications: yes</text>
+    <text x="32" y="466" class="small">Endpoint saved: yes</text>
+    <text x="32" y="490" class="small">Device token saved: yes</text>
+    <text x="32" y="514" class="small">Tracking enabled: yes</text>
+    <text x="18" y="806" class="label">Persistent tracking notification</text>
+  </g>
+</svg>

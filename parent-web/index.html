@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SafeSteps Family GPS by Tylabs Media helps parents see live child location, route history, safe zones, battery status, and family safety alerts.">
+  <title>SafeSteps Family GPS by Tylabs Media</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar" aria-label="Family members">
+      <div class="brand">
+        <div class="brand-mark">SS</div>
+        <div>
+          <h1>SafeSteps</h1>
+          <p>Family GPS by Tylabs Media</p>
+        </div>
+      </div>
+
+      <form class="auth-card" id="authForm">
+        <label for="authEmail">Parent account</label>
+        <input id="authEmail" name="email" type="email" placeholder="Email address" autocomplete="email">
+        <input id="authPassword" name="password" type="password" placeholder="Password" autocomplete="current-password">
+        <div class="auth-actions">
+          <button type="submit" data-mode="login">Log in</button>
+          <button type="button" id="signupButton">Sign up</button>
+        </div>
+        <div class="auth-actions">
+          <button type="button" id="logoutButton">Log out</button>
+          <button type="button" id="deleteAccountButton">Delete account</button>
+        </div>
+        <small id="authStatus">Log in or create an account to sync your family.</small>
+      </form>
+
+      <section class="plan-card" aria-label="Subscription plan">
+        <span>7-day free trial</span>
+        <strong id="planName">Plus - 2 children</strong>
+        <small id="planPrice">GBP 3.99/month</small>
+      </section>
+
+      <form class="add-member" id="addMemberForm">
+        <label for="memberName">Add a child</label>
+        <div class="add-row">
+          <input id="memberName" name="memberName" type="text" placeholder="Child name" autocomplete="off">
+          <button type="submit" title="Pair child">+</button>
+        </div>
+      </form>
+
+      <div class="member-list" id="memberList"></div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Now viewing</p>
+          <h2 id="selectedName">Alex</h2>
+        </div>
+        <div class="top-actions">
+          <div class="trial-pill" id="serverStatus">Connecting to test server</div>
+          <div class="status-pill" id="statusPill">Live</div>
+        </div>
+      </header>
+
+      <section class="quick-actions" aria-label="Tracking controls">
+        <button class="action primary" id="startTracking">Start tracking</button>
+        <button class="action" id="stopTracking">Stop tracking</button>
+        <label class="switch-row">
+          <input type="checkbox" id="autoTrack">
+          <span>Auto track this child</span>
+        </label>
+        <select id="historyRange" aria-label="History range">
+          <option value="1">History: last hour</option>
+          <option value="6">History: last 6 hours</option>
+          <option value="24" selected>History: last 24 hours</option>
+          <option value="168">History: last 7 days</option>
+        </select>
+      </section>
+
+      <section class="map-layout">
+        <div class="map-panel">
+          <div id="mapCanvas" aria-label="Live map and journey route"></div>
+          <div class="map-overlay">
+            <div>
+              <span class="mini-label">Last seen</span>
+              <strong id="lastUpdate">Just now</strong>
+            </div>
+            <div>
+              <span class="mini-label">Accuracy</span>
+              <strong id="accuracy">8 m</strong>
+            </div>
+            <div>
+              <span class="mini-label">Mode</span>
+              <strong id="modeLabel">Auto</strong>
+            </div>
+          </div>
+        </div>
+
+        <aside class="details">
+          <section class="setup-card">
+            <div class="section-title">
+              <h3>Pair child phone</h3>
+              <span class="step-pill" id="pairStatus">Ready</span>
+            </div>
+            <ol class="setup-steps">
+              <li>Install SafeSteps Family GPS on the child's Android phone.</li>
+              <li>On the phone, choose child setup.</li>
+              <li>Enter this pairing code and passkey.</li>
+              <li>Allow location, locked-phone tracking, and notifications.</li>
+            </ol>
+            <div class="pair-code" id="pairCode">ALEX-4821</div>
+            <div class="passkey-code" id="passkeyCode">Passkey 1234</div>
+            <button class="action full" id="refreshPairCode">Create new pairing code</button>
+          </section>
+
+          <section>
+            <div class="section-title">
+              <h3>Live details</h3>
+              <span class="step-pill">Now</span>
+            </div>
+            <dl class="details-list">
+              <div><dt>Tracking</dt><dd id="trackingState">On</dd></div>
+              <div><dt>Battery</dt><dd id="battery">82%</dd></div>
+              <div><dt>Movement</dt><dd id="speed">Walking</dd></div>
+              <div><dt>Place</dt><dd id="place">Near school</dd></div>
+            </dl>
+          </section>
+
+          <section>
+            <div class="section-title">
+              <h3>Journey history</h3>
+              <span class="step-pill">Replay</span>
+            </div>
+            <div id="historyList" class="history-list"></div>
+          </section>
+        </aside>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

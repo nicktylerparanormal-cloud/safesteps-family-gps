@@ -1,0 +1,43 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.tylabsmedia.safesteps.child"
+    compileSdk 35
+
+    def signingPropertiesFile = rootProject.file("safesteps-upload-key.properties")
+    def signingProperties = new Properties()
+    if (signingPropertiesFile.exists()) {
+        signingProperties.load(new FileInputStream(signingPropertiesFile))
+    }
+
+    defaultConfig {
+        applicationId "com.tylabsmedia.safesteps.child"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "0.1.0"
+    }
+
+    signingConfigs {
+        release {
+            if (signingPropertiesFile.exists()) {
+                storeFile rootProject.file(signingProperties["storeFile"])
+                storePassword signingProperties["storePassword"]
+                keyAlias signingProperties["keyAlias"]
+                keyPassword signingProperties["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    implementation "com.android.billingclient:billing:8.3.0"
+}
