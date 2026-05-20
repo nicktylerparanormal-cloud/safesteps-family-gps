@@ -74,7 +74,22 @@ async function initPostgres() {
     ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
   });
   const schema = fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8");
-  await pgPool.query(schema);
+  await withDatabaseRetry(() => pgPool.query(schema));
+}
+
+async function withDatabaseRetry(operation, attempts = 12) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const delayMs = Math.min(30000, attempt * 5000);
+      console.warn(`Database not ready yet (${attempt}/${attempts}): ${error.code || error.message}`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
 }
 
 async function allParents() {
