@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS parents (
   id TEXT PRIMARY KEY,
+  name TEXT,
   email TEXT UNIQUE,
   password_salt TEXT,
   password_hash TEXT,
@@ -78,6 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_parent_sessions_token ON parent_sessions(token_ha
 CREATE INDEX IF NOT EXISTS idx_parent_email ON parents(email);
 
 ALTER TABLE parents ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+ALTER TABLE parents ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE parents ADD COLUMN IF NOT EXISTS password_salt TEXT;
 ALTER TABLE parents ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE parents ADD COLUMN IF NOT EXISTS deleted_at BIGINT;
