@@ -94,7 +94,7 @@ async function withDatabaseRetry(operation, attempts = 12) {
 
 async function allParents() {
   if (!pgPool) return state.parents;
-  const result = await pgPool.query("SELECT id, token_hash AS \"tokenHash\", created_at AS \"createdAt\" FROM parents");
+  const result = await pgPool.query("SELECT id, name, email, token_hash AS \"tokenHash\", created_at AS \"createdAt\" FROM parents");
   return result.rows;
 }
 
@@ -105,8 +105,8 @@ async function insertParent(parent) {
     return;
   }
   await pgPool.query(
-    "INSERT INTO parents (id, email, password_salt, password_hash, token_hash, created_at, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    [parent.id, parent.email || null, parent.passwordSalt || null, parent.passwordHash || null, parent.tokenHash, parent.createdAt, parent.deletedAt || null]
+    "INSERT INTO parents (id, name, email, password_salt, password_hash, token_hash, created_at, deleted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    [parent.id, parent.name || null, parent.email || null, parent.passwordSalt || null, parent.passwordHash || null, parent.tokenHash, parent.createdAt, parent.deletedAt || null]
   );
 }
 
@@ -118,12 +118,12 @@ async function findParentByToken(token) {
     return state.parents.find((parent) => parent.tokenHash === tokenHash && !parent.deletedAt) || null;
   }
   const sessionResult = await pgPool.query(
-    "SELECT p.id, p.email, p.token_hash AS \"tokenHash\", p.created_at AS \"createdAt\" FROM parent_sessions s JOIN parents p ON p.id = s.parent_id WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > $2 AND p.deleted_at IS NULL",
+    "SELECT p.id, p.name, p.email, p.token_hash AS \"tokenHash\", p.created_at AS \"createdAt\" FROM parent_sessions s JOIN parents p ON p.id = s.parent_id WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > $2 AND p.deleted_at IS NULL",
     [tokenHash, now()]
   );
   if (sessionResult.rows[0]) return sessionResult.rows[0];
   const result = await pgPool.query(
-    "SELECT id, email, token_hash AS \"tokenHash\", created_at AS \"createdAt\" FROM parents WHERE token_hash = $1 AND deleted_at IS NULL",
+    "SELECT id, name, email, token_hash AS \"tokenHash\", created_at AS \"createdAt\" FROM parents WHERE token_hash = $1 AND deleted_at IS NULL",
     [tokenHash]
   );
   return result.rows[0] || null;
@@ -133,7 +133,7 @@ async function findParentByEmail(email) {
   const normalized = normalizeEmail(email);
   if (!pgPool) return state.parents.find((parent) => parent.email === normalized && !parent.deletedAt) || null;
   const result = await pgPool.query(
-    "SELECT id, email, password_salt AS \"passwordSalt\", password_hash AS \"passwordHash\", token_hash AS \"tokenHash\", created_at AS \"createdAt\" FROM parents WHERE email = $1 AND deleted_at IS NULL",
+    "SELECT id, name, email, password_salt AS \"passwordSalt\", password_hash AS \"passwordHash\", token_hash AS \"tokenHash\", created_at AS \"createdAt\" FROM parents WHERE email = $1 AND deleted_at IS NULL",
     [normalized]
   );
   return result.rows[0] || null;
@@ -343,6 +343,10 @@ function validPassword(value) {
   return typeof value === "string" && value.length >= 8;
 }
 
+function normalizeName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 80);
+}
+
 function issueParentSession(parent) {
   const token = secret();
   const session = {
@@ -352,7 +356,7 @@ function issueParentSession(parent) {
     createdAt: now(),
     expiresAt: now() + 90 * 24 * 60 * 60 * 1000
   };
-  return insertParentSession(session).then(() => ({ parentToken: token, parentId: parent.id, email: parent.email || "" }));
+  return insertParentSession(session).then(() => ({ parentToken: token, parentId: parent.id, name: parent.name || "", email: parent.email || "" }));
 }
 
 function rateLimitKey(request) {
@@ -421,10 +425,11 @@ async function api(request, response) {
 
   if (request.method === "POST" && url.pathname === "/api/parent/signup") {
     const body = await readBody(request);
+    const name = normalizeName(body.name);
     const email = normalizeEmail(body.email);
     const password = String(body.password || "");
-    if (!email.includes("@") || !validPassword(password)) {
-      sendJson(response, 400, { error: "Enter a valid email and a password of at least 8 characters." });
+    if (!name || !email.includes("@") || !validPassword(password)) {
+      sendJson(response, 400, { error: "Enter your name, a valid email, and a password of at least 8 characters." });
       return;
     }
     if (await findParentByEmail(email)) {
@@ -434,6 +439,7 @@ async function api(request, response) {
     const salt = secret(16);
     const parent = {
       id: id("par"),
+      name,
       email,
       passwordSalt: salt,
       passwordHash: passwordHash(password, salt),
