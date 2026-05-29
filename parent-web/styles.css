@@ -404,6 +404,83 @@ button:disabled {
   text-decoration: underline;
 }
 
+
+.view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.view-tab {
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.view-tab.active {
+  background: var(--blue);
+  color: #ffffff;
+}
+
+.quick-actions {
+  display: block;
+}
+
+.quick-actions summary {
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--ink);
+  list-style: none;
+}
+
+.quick-actions summary::-webkit-details-marker {
+  display: none;
+}
+
+.quick-actions summary::after {
+  content: "Open";
+  float: right;
+  color: var(--blue);
+}
+
+.quick-actions[open] summary::after {
+  content: "Close";
+}
+
+.quick-action-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+}
+
+.app-shell.view-map .details .setup-card {
+  display: none;
+}
+
+.app-shell.view-setup .quick-actions,
+.app-shell.view-setup .map-panel,
+.app-shell.view-setup .details section:not(.setup-card):not(.places-card) {
+  display: none !important;
+}
+
+.app-shell.view-setup .map-layout {
+  grid-template-columns: minmax(0, 720px);
+}
+
+.app-shell.view-setup .details {
+  max-width: 720px;
+}
 .workspace {
   padding: 28px;
   display: grid;
@@ -732,11 +809,13 @@ select {
   }
 
   .sidebar,
-  .workspace {
+  
+.workspace {
     padding: 18px;
   }
 
-  .app-shell.is-signed-in.has-family .workspace {
+  .app-shell.is-signed-in.has-family 
+.workspace {
     order: 1;
   }
 
@@ -829,7 +908,8 @@ select {
 
 @media (max-width: 420px) {
   .sidebar,
-  .workspace {
+  
+.workspace {
     padding: 14px;
   }
 
@@ -860,4 +940,67 @@ select {
 
 .legal-page p {
   color: var(--muted);
+}
+
+.quick-actions {
+  display: block;
+}
+
+.quick-actions .action,
+.quick-actions select,
+.quick-actions .switch-row {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .quick-action-body {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .view-switch {
+    width: 100%;
+  }
+
+  .view-tab {
+    flex: 1;
+  }
+}
+
+.place-form {
+  display: grid;
+  gap: 10px;
+}
+
+.place-form input,
+.place-form select {
+  width: 100%;
+}
+
+.place-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.place-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.place-item span,
+.empty-note {
+  color: var(--muted);
+  margin: 0;
+}
+
+.app-shell.view-map .details .places-card {
+  display: none;
+}
+
+.app-shell.view-setup .details section:not(.setup-card):not(.places-card) {
+  display: none !important;
 }
