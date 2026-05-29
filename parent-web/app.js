@@ -6,6 +6,8 @@ let parentToken = localStorage.getItem("safestepsParentToken") || "";
 let parentId = localStorage.getItem("safestepsParentId") || "";
 let parentEmail = localStorage.getItem("safestepsParentEmail") || "";
 let parentName = localStorage.getItem("safestepsParentName") || "";
+let selectedPlan = localStorage.getItem("safestepsSelectedPlan") || "starter";
+let onboardingActive = false;
 
 const apiBase = window.location.protocol.startsWith("http") ? window.location.origin : "http://localhost:8787";
 const welcomeScreen = document.getElementById("welcomeScreen");
@@ -36,9 +38,11 @@ const statusPill = document.getElementById("statusPill");
 const serverStatus = document.getElementById("serverStatus");
 const mapViewButton = document.getElementById("mapViewButton");
 const setupViewButton = document.getElementById("setupViewButton");
+const manageChildrenButton = document.getElementById("manageChildrenButton");
 const quickActions = document.getElementById("quickActions");
 const startTracking = document.getElementById("startTracking");
 const stopTracking = document.getElementById("stopTracking");
+const clearHistoryButton = document.getElementById("clearHistoryButton");
 const autoTrack = document.getElementById("autoTrack");
 const modeLabel = document.getElementById("modeLabel");
 const historyRange = document.getElementById("historyRange");
@@ -51,6 +55,7 @@ const pairCode = document.getElementById("pairCode");
 const passkeyCode = document.getElementById("passkeyCode");
 const pairStatus = document.getElementById("pairStatus");
 const refreshPairCode = document.getElementById("refreshPairCode");
+const resetChildButton = document.getElementById("resetChildButton");
 const trackingState = document.getElementById("trackingState");
 const battery = document.getElementById("battery");
 const speed = document.getElementById("speed");
@@ -58,6 +63,15 @@ const place = document.getElementById("place");
 const mapTitle = document.getElementById("mapTitle");
 const mapStatusDot = document.getElementById("mapStatusDot");
 const historyList = document.getElementById("historyList");
+const parentOnboarding = document.getElementById("parentOnboarding");
+const onboardingBegin = document.getElementById("onboardingBegin");
+const onboardingAddForm = document.getElementById("onboardingAddForm");
+const onboardingChildName = document.getElementById("onboardingChildName");
+const onboardingPairCode = document.getElementById("onboardingPairCode");
+const onboardingPasskey = document.getElementById("onboardingPasskey");
+const onboardingAddAnother = document.getElementById("onboardingAddAnother");
+const onboardingStartMap = document.getElementById("onboardingStartMap");
+const planOptions = Array.from(document.querySelectorAll(".plan-option"));
 let map;
 let routeLayer;
 let markerLayer;
@@ -65,11 +79,14 @@ let placeLayer;
 let dashboardView = "map";
 
 function setDashboardView(view) {
+  onboardingActive = false;
+  parentApp.classList.remove("onboarding-active");
   dashboardView = view === "setup" ? "setup" : "map";
   parentApp.classList.toggle("view-setup", dashboardView === "setup");
   parentApp.classList.toggle("view-map", dashboardView === "map");
   mapViewButton.classList.toggle("active", dashboardView === "map");
   setupViewButton.classList.toggle("active", dashboardView === "setup");
+  manageChildrenButton.classList.toggle("active", dashboardView === "setup");
   if (dashboardView === "map") {
     setTimeout(() => {
       if (map) map.invalidateSize();
@@ -77,6 +94,40 @@ function setDashboardView(view) {
   }
 }
 
+function planLimit() {
+  if (selectedPlan === "family") return 6;
+  if (selectedPlan === "plus") return 2;
+  return 1;
+}
+
+function showParentOnboarding(step = "welcome") {
+  showParentApp();
+  onboardingActive = true;
+  parentApp.classList.add("onboarding-active");
+  parentApp.classList.remove("view-map", "view-setup");
+  parentOnboarding.querySelectorAll(".onboarding-card").forEach((card) => {
+    card.classList.toggle("is-hidden", card.dataset.step !== step);
+  });
+  if (step === "pairing") {
+    const child = currentChild();
+    onboardingPairCode.textContent = child?.pairCode || "------";
+    onboardingPasskey.textContent = child?.passkey || "----";
+  }
+}
+
+function finishOnboarding() {
+  localStorage.setItem("safestepsParentOnboardingDone", "true");
+  onboardingActive = false;
+  parentApp.classList.remove("onboarding-active");
+  setDashboardView("map");
+}
+
+function selectPlan(plan) {
+  selectedPlan = ["starter", "plus", "family"].includes(plan) ? plan : "starter";
+  localStorage.setItem("safestepsSelectedPlan", selectedPlan);
+  planOptions.forEach((option) => option.classList.toggle("active", option.dataset.plan === selectedPlan));
+  renderPlan();
+}
 function currentChild() {
   return family.find((child) => child.id === selectedId) || family[0] || null;
 }
@@ -235,6 +286,7 @@ function render() {
   const child = currentChild();
   if (!child) {
     setVisible(quickActions, false);
+    setVisible(resetChildButton, false);
     selectedName.textContent = "Add a child";
     selectedSummary.textContent = "Create a pairing code to get started";
     statusPill.textContent = "Setup";
@@ -260,6 +312,7 @@ function render() {
   }
 
   setVisible(quickActions, true);
+  setVisible(resetChildButton, true);
   selectedName.textContent = child.name;
   statusPill.textContent = child.tracking ? "Live" : child.paired ? "Paired" : "Pairing";
   statusPill.classList.toggle("off", !child.tracking);
@@ -308,19 +361,19 @@ function pairingHelp(child) {
 }
 
 function renderPlan() {
-  const count = family.length;
-  if (count <= 1) {
+  planOptions.forEach((option) => option.classList.toggle("active", option.dataset.plan === selectedPlan));
+  if (selectedPlan === "starter") {
     planName.textContent = "Starter - 1 child";
-    planPrice.textContent = "GBP 2.99/month";
+    planPrice.textContent = "GBP 2.99/month after Google Play trial";
     return;
   }
-  if (count === 2) {
+  if (selectedPlan === "plus") {
     planName.textContent = "Plus - 2 children";
-    planPrice.textContent = "GBP 3.99/month";
+    planPrice.textContent = "GBP 3.99/month after Google Play trial";
     return;
   }
-  planName.textContent = "Family - up to 6";
-  planPrice.textContent = "GBP 7.99/month";
+  planName.textContent = "Family - up to 6 children";
+  planPrice.textContent = "GBP 7.99/month after Google Play trial";
 }
 
 function renderMembers() {
@@ -501,10 +554,41 @@ async function createPairing(childName, childId = "") {
   localStorage.setItem("safestepsPendingPairings", JSON.stringify(pendingPairings));
   selectedId = data.childId;
   await loadChildren();
+  if (onboardingActive) {
+    onboardingPairCode.textContent = data.code;
+    onboardingPasskey.textContent = data.passkey;
+    showParentOnboarding("pairing");
+  }
   serverStatus.textContent = `Pairing code ready for ${childName}`;
   serverStatus.classList.remove("error");
 }
+async function clearRouteHistory() {
+  const child = currentChild();
+  if (!child) return;
+  const confirmed = window.confirm(`Clear ${child.name}'s route history? This keeps the phone paired and only removes the blue trail.`);
+  if (!confirmed) return;
+  serverStatus.textContent = `Clearing ${child.name}'s route history...`;
+  serverStatus.classList.remove("error");
+  await api(`/api/children/${encodeURIComponent(child.id)}/clear-location-history`, { method: "POST" });
+  await loadChildren();
+  serverStatus.textContent = `${child.name}'s route history was cleared.`;
+}
 
+async function resetSelectedChild() {
+  const child = currentChild();
+  if (!child) return;
+  const confirmed = window.confirm(`Remove ${child.name} and delete their pairing and location history? You can add them again with a new code.`);
+  if (!confirmed) return;
+  serverStatus.textContent = `Removing ${child.name}...`;
+  serverStatus.classList.remove("error");
+  await api(`/api/children/${encodeURIComponent(child.id)}`, { method: "DELETE" });
+  delete pendingPairings[child.id];
+  localStorage.setItem("safestepsPendingPairings", JSON.stringify(pendingPairings));
+  selectedId = "";
+  await loadChildren();
+  setDashboardView("setup");
+  serverStatus.textContent = `${child.name} removed. Add the child again to start fresh.`;
+}
 
 placeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -520,9 +604,9 @@ addMemberForm.addEventListener("submit", async (event) => {
   const input = document.getElementById("memberName");
   const name = input.value.trim();
   if (!name) return;
-  if (family.length >= 6) {
+  if (family.length >= planLimit()) {
     input.value = "";
-    input.placeholder = "Family plan allows up to 6";
+    input.placeholder = `Selected plan allows ${planLimit()} child${planLimit() > 1 ? "ren" : ""}`;
     return;
   }
   input.value = "";
@@ -537,7 +621,12 @@ addMemberForm.addEventListener("submit", async (event) => {
 
 chooseParent.addEventListener("click", () => {
   localStorage.setItem("safestepsLastRole", "parent");
-  showParentApp();
+  if (!localStorage.getItem("safestepsParentOnboardingDone") || !family.length) {
+    showParentOnboarding("welcome");
+  } else {
+    showParentApp();
+    setDashboardView("map");
+  }
   ensureMap();
 });
 
@@ -549,6 +638,7 @@ chooseChild.addEventListener("click", () => {
 childBack.addEventListener("click", showWelcome);
 mapViewButton.addEventListener("click", () => setDashboardView("map"));
 setupViewButton.addEventListener("click", () => setDashboardView("setup"));
+manageChildrenButton.addEventListener("click", () => setDashboardView("setup"));
 
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -568,6 +658,51 @@ signupButton.addEventListener("click", async () => {
     authStatus.textContent = error.message;
   }
 });
+
+
+planOptions.forEach((option) => {
+  option.addEventListener("click", () => selectPlan(option.dataset.plan));
+});
+
+onboardingBegin.addEventListener("click", () => {
+  if (!parentToken) {
+    authStatus.textContent = "Log in or sign up first, then continue setup.";
+    return;
+  }
+  showParentOnboarding("child-name");
+});
+
+onboardingAddForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const name = onboardingChildName.value.trim();
+  if (!name) {
+    onboardingChildName.placeholder = "Enter your child's name";
+    return;
+  }
+  if (family.length >= planLimit()) {
+    serverStatus.textContent = `Your selected plan allows ${planLimit()} child${planLimit() > 1 ? "ren" : ""}. Choose a larger plan to add more.`;
+    serverStatus.classList.add("error");
+    return;
+  }
+  try {
+    await createPairing(name);
+    onboardingChildName.value = "";
+  } catch (error) {
+    serverStatus.textContent = error.message;
+    serverStatus.classList.add("error");
+  }
+});
+
+onboardingAddAnother.addEventListener("click", () => {
+  if (family.length >= planLimit()) {
+    serverStatus.textContent = `Your selected plan allows ${planLimit()} child${planLimit() > 1 ? "ren" : ""}. Choose a larger plan to add more.`;
+    serverStatus.classList.add("error");
+    return;
+  }
+  showParentOnboarding("child-name");
+});
+
+onboardingStartMap.addEventListener("click", finishOnboarding);
 
 logoutButton.addEventListener("click", async () => {
   if (parentToken) {
@@ -621,6 +756,14 @@ stopTracking.addEventListener("click", () => {
 
 autoTrack.addEventListener("change", render);
 historyRange.addEventListener("change", renderHistory);
+clearHistoryButton.addEventListener("click", async () => {
+  try {
+    await clearRouteHistory();
+  } catch (error) {
+    serverStatus.textContent = error.message;
+    serverStatus.classList.add("error");
+  }
+});
 
 refreshPairCode.addEventListener("click", async () => {
   const child = currentChild();
@@ -632,6 +775,15 @@ refreshPairCode.addEventListener("click", async () => {
   }
 });
 
+
+resetChildButton.addEventListener("click", async () => {
+  try {
+    await resetSelectedChild();
+  } catch (error) {
+    serverStatus.textContent = error.message;
+    serverStatus.classList.add("error");
+  }
+});
 if (localStorage.getItem("safestepsLastRole") === "parent" || parentToken) {
   showParentApp();
 } else {
@@ -642,6 +794,7 @@ if (parentEmail) {
   authStatus.textContent = `Signed in as ${parentEmail}`;
 }
 renderAuthState();
+selectPlan(selectedPlan);
 setDashboardView("map");
 loadChildren().catch((error) => {
   serverStatus.textContent = error.message;
