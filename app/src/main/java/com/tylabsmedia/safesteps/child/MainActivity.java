@@ -16,6 +16,10 @@ import android.provider.Settings;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -39,6 +43,7 @@ public class MainActivity extends Activity implements BillingManager.Listener {
     private EditText passkeyInput;
     private Button startButton;
     private Button stopButton;
+    private WebView parentDashboardWebView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,10 +56,25 @@ public class MainActivity extends Activity implements BillingManager.Listener {
 
     @Override
     protected void onDestroy() {
+        closeParentDashboardWebView();
         if (billingManager != null) {
             billingManager.destroy();
         }
         super.onDestroy();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (parentDashboardWebView != null) {
+            if (parentDashboardWebView.canGoBack()) {
+                parentDashboardWebView.goBack();
+            } else {
+                closeParentDashboardWebView();
+                showParentSetup();
+            }
+            return;
+        }
+        super.onBackPressed();
     }
 
     @Override
@@ -89,6 +109,7 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         child.setOnClickListener(view -> showChildSetup());
         root.addView(child);
 
+        addLegalLinks(root);
         setContentView(scrollView);
     }
 
@@ -102,23 +123,84 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         panel.setPadding(dp(16), dp(16), dp(16), dp(16));
         root.addView(panel);
         panel.addView(sectionTitle("Parent setup"), matchWrap());
-        TextView help = bodyText("Choose a family plan, then open the parent dashboard to add your child. The dashboard will show a 6-digit code and 4-digit passkey for the child phone.");
+        TextView help = bodyText("Open your live map dashboard inside SafeSteps to add children, create pairing codes, and see location updates.");
         help.setPadding(0, dp(6), 0, dp(10));
         panel.addView(help, matchWrap());
+
+        Button dashboard = button("Open live map dashboard", true);
+        dashboard.setOnClickListener(view -> showParentDashboard());
+        panel.addView(dashboard);
+
+        TextView billingHelp = bodyText("Choose a parent plan when you are ready. During Google Play testing, licence testers can use test purchases without being charged.");
+        billingHelp.setPadding(0, dp(16), 0, dp(4));
+        panel.addView(billingHelp, matchWrap());
 
         planListView = new LinearLayout(this);
         planListView.setOrientation(LinearLayout.VERTICAL);
         panel.addView(planListView, matchWrap());
         renderPlans(null);
 
-        Button dashboard = button("Open parent dashboard", true);
-        dashboard.setOnClickListener(view -> {
-            prefs.edit().putString(AppConfig.KEY_API_BASE_URL, cleanApiBase()).apply();
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(cleanApiBase())));
-        });
-        panel.addView(dashboard);
-
+        addLegalLinks(root);
         setContentView(scrollView);
+    }
+
+    private void showParentDashboard() {
+        prefs.edit().putString(AppConfig.KEY_ROLE, "parent").putString(AppConfig.KEY_API_BASE_URL, cleanApiBase()).apply();
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(color("#F4F7FB"));
+
+        LinearLayout topbar = new LinearLayout(this);
+        topbar.setOrientation(LinearLayout.HORIZONTAL);
+        topbar.setGravity(Gravity.CENTER_VERTICAL);
+        topbar.setPadding(dp(12), dp(10), dp(12), dp(10));
+        topbar.setBackgroundColor(color("#102033"));
+        root.addView(topbar, matchWrap());
+
+        Button back = compactButton("Back");
+        back.setOnClickListener(view -> {
+            closeParentDashboardWebView();
+            showParentSetup();
+        });
+        topbar.addView(back);
+
+        TextView title = label("Parent dashboard", "#FFFFFF", 17);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        titleParams.setMargins(dp(12), 0, dp(12), 0);
+        topbar.addView(title, titleParams);
+
+        Button refresh = compactButton("Refresh");
+        refresh.setOnClickListener(view -> {
+            if (parentDashboardWebView != null) {
+                parentDashboardWebView.reload();
+            }
+        });
+        topbar.addView(refresh);
+
+        parentDashboardWebView = new WebView(this);
+        WebSettings settings = parentDashboardWebView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        parentDashboardWebView.setWebViewClient(new WebViewClient());
+        parentDashboardWebView.setWebChromeClient(new WebChromeClient());
+        parentDashboardWebView.loadUrl(cleanApiBase());
+        root.addView(parentDashboardWebView, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1));
+
+        setContentView(root);
+    }
+
+    private void closeParentDashboardWebView() {
+        if (parentDashboardWebView != null) {
+            parentDashboardWebView.destroy();
+            parentDashboardWebView = null;
+        }
     }
 
     private void renderPlans(Map<String, BillingManager.Plan> plans) {
@@ -127,7 +209,7 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         }
         planListView.removeAllViews();
         addPlanButton(plans, AppConfig.PLAN_STARTER, "Starter", "1 child", "GBP 2.99/month");
-        addPlanButton(plans, AppConfig.PLAN_PLUS, "Plus", "2 children", "GBP 4.99/month");
+        addPlanButton(plans, AppConfig.PLAN_PLUS, "Plus", "2 children", "GBP 3.99/month");
         addPlanButton(plans, AppConfig.PLAN_FAMILY, "Family", "up to 6 children", "GBP 7.99/month");
     }
 
@@ -149,24 +231,36 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         LinearLayout setup = panel("#FFFFFF");
         setup.setPadding(dp(16), dp(16), dp(16), dp(16));
         root.addView(setup);
-        setup.addView(sectionTitle("Pair this phone"), matchWrap());
-        TextView help = bodyText("Ask the parent to tap Pair child on the dashboard, then enter the code and passkey shown there. SafeSteps connects to the service automatically.");
-        help.setPadding(0, dp(6), 0, dp(10));
-        setup.addView(help, matchWrap());
+        boolean alreadyPaired = !prefs.getString(AppConfig.KEY_DEVICE_TOKEN, "").isEmpty();
+        if (alreadyPaired) {
+            String pairedParent = prefs.getString(AppConfig.KEY_PARENT_NAME, "parent");
+            setup.addView(sectionTitle("PAIRED WITH " + pairedParent), matchWrap());
+            TextView help = bodyText("This phone is connected and ready to share location. Use the controls below to start or stop sharing.");
+            help.setPadding(0, dp(6), 0, dp(10));
+            setup.addView(help, matchWrap());
+            Button freshStartTop = button("Start fresh / pair again", false);
+            freshStartTop.setOnClickListener(view -> clearChildPairing());
+            setup.addView(freshStartTop);
+        } else {
+            setup.addView(sectionTitle("Pair this phone"), matchWrap());
+            TextView help = bodyText("Ask the parent to tap Pair child on the dashboard, then enter the code and passkey shown there. SafeSteps connects to the service automatically.");
+            help.setPadding(0, dp(6), 0, dp(10));
+            setup.addView(help, matchWrap());
 
-        childNameInput = input("Child name", "Alex");
-        pairingCodeInput = input("6-digit pairing code", "123456");
-        passkeyInput = input("4-digit passkey", "1234");
-        pairingCodeInput.setInputType(InputType.TYPE_CLASS_NUMBER);
-        passkeyInput.setInputType(InputType.TYPE_CLASS_NUMBER);
-        childNameInput.setText(prefs.getString(AppConfig.KEY_CHILD_NAME, ""));
-        setup.addView(childNameInput);
-        setup.addView(pairingCodeInput);
-        setup.addView(passkeyInput);
+            childNameInput = input("Child name", "Alex");
+            pairingCodeInput = input("6-digit pairing code", "123456");
+            passkeyInput = input("4-digit passkey", "1234");
+            pairingCodeInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+            passkeyInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+            childNameInput.setText(prefs.getString(AppConfig.KEY_CHILD_NAME, ""));
+            setup.addView(childNameInput);
+            setup.addView(pairingCodeInput);
+            setup.addView(passkeyInput);
 
-        Button pair = button("Pair with parent", true);
-        pair.setOnClickListener(view -> pairChildPhone());
-        setup.addView(pair);
+            Button pair = button("Pair with parent", true);
+            pair.setOnClickListener(view -> pairChildPhone());
+            setup.addView(pair);
+        }
 
         LinearLayout permissions = panel("#FFFFFF");
         permissions.setPadding(dp(16), dp(16), dp(16), dp(16));
@@ -197,6 +291,9 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         stopButton = button("Stop sharing", false);
         stopButton.setOnClickListener(view -> stopTracking());
         sharing.addView(stopButton);
+        Button freshStart = button("Start fresh / pair again", false);
+        freshStart.setOnClickListener(view -> clearChildPairing());
+        sharing.addView(freshStart);
 
         statusView = new TextView(this);
         statusView.setTextSize(14);
@@ -205,6 +302,7 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         statusView.setPadding(dp(14), dp(14), dp(14), dp(14));
         addTopMargin(statusView, 14);
         root.addView(statusView, matchWrap());
+        addLegalLinks(root);
         setContentView(scrollView);
         updateStatus();
     }
@@ -230,12 +328,25 @@ public class MainActivity extends Activity implements BillingManager.Listener {
                     .putString(AppConfig.KEY_CHILD_ID, result.childId)
                     .putString(AppConfig.KEY_DEVICE_TOKEN, result.deviceToken)
                     .putString(AppConfig.KEY_ENDPOINT, result.locationEndpoint)
+                    .putString(AppConfig.KEY_PARENT_NAME, result.parentName)
                     .apply();
             pairingCodeInput.setText("");
             passkeyInput.setText("");
             showMessage("Paired. You can start sharing location.");
             updateStatus();
         }));
+    }
+    private void clearChildPairing() {
+        stopTracking();
+        prefs.edit()
+                .remove(AppConfig.KEY_CHILD_ID)
+                .remove(AppConfig.KEY_CHILD_NAME)
+                .remove(AppConfig.KEY_PARENT_NAME)
+                .remove(AppConfig.KEY_DEVICE_TOKEN)
+                .remove(AppConfig.KEY_ENDPOINT)
+                .apply();
+        showMessage("Pairing cleared. Enter a new parent code to pair again.");
+        showChildSetup();
     }
 
     private ScrollView baseScroll() {
@@ -256,6 +367,42 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         Button back = button("Back", false);
         back.setOnClickListener(view -> showRoleChooser());
         root.addView(back);
+    }
+
+    private void addLegalLinks(LinearLayout root) {
+        LinearLayout links = new LinearLayout(this);
+        links.setOrientation(LinearLayout.HORIZONTAL);
+        links.setGravity(Gravity.CENTER);
+        links.setPadding(0, dp(10), 0, 0);
+        addTopMargin(links, 10);
+
+        Button privacy = legalLinkButton("Privacy");
+        privacy.setOnClickListener(view -> openUrl(AppConfig.PRIVACY_POLICY_URL));
+        links.addView(privacy, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        Button deleteData = legalLinkButton("Delete data");
+        deleteData.setOnClickListener(view -> openUrl(AppConfig.DELETE_DATA_URL));
+        LinearLayout.LayoutParams deleteParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        deleteParams.setMargins(dp(8), 0, 0, 0);
+        links.addView(deleteData, deleteParams);
+
+        root.addView(links);
+    }
+
+    private Button legalLinkButton(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setAllCaps(false);
+        button.setTextSize(13);
+        button.setTypeface(Typeface.DEFAULT_BOLD);
+        button.setTextColor(color("#2167D9"));
+        button.setBackground(cardBackground("#F8FAFD", "#DCE5EF", dp(8)));
+        button.setMinHeight(dp(44));
+        return button;
+    }
+
+    private void openUrl(String url) {
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
     }
 
     private EditText input(String hint, String helper) {
@@ -285,6 +432,18 @@ public class MainActivity extends Activity implements BillingManager.Listener {
         LinearLayout.LayoutParams params = matchWrap();
         params.setMargins(0, dp(10), 0, 0);
         button.setLayoutParams(params);
+        return button;
+    }
+
+    private Button compactButton(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setAllCaps(false);
+        button.setTextSize(13);
+        button.setTypeface(Typeface.DEFAULT_BOLD);
+        button.setTextColor(color("#102033"));
+        button.setBackground(cardBackground("#FFFFFF", "#DCE5EF", dp(8)));
+        button.setMinHeight(dp(40));
         return button;
     }
 
