@@ -6,7 +6,7 @@
   <meta name="description" content="SafeSteps Family GPS by Tylabs Media helps parents see live child location, route history, safe zones, battery status, and family safety alerts.">
   <title>SafeSteps Family GPS by Tylabs Media</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=20260521-2">
+  <link rel="stylesheet" href="styles.css?v=20260529-1">
 </head>
 <body>
   <section class="welcome-screen" id="welcomeScreen">
@@ -121,12 +121,18 @@
           <p class="selected-summary" id="selectedSummary">Waiting for location</p>
         </div>
         <div class="top-actions">
+          <div class="view-switch" aria-label="Dashboard view">
+            <button class="view-tab active" id="mapViewButton" type="button">Map</button>
+            <button class="view-tab" id="setupViewButton" type="button">Setup</button>
+          </div>
           <div class="trial-pill" id="serverStatus">Connecting to SafeSteps</div>
           <div class="status-pill" id="statusPill">Live</div>
         </div>
       </header>
 
-      <section class="quick-actions" id="quickActions" aria-label="Tracking controls">
+      <details class="quick-actions" id="quickActions" aria-label="Tracking controls">
+        <summary>Tracking controls</summary>
+        <div class="quick-action-body">
         <button class="action primary" id="startTracking">Start tracking</button>
         <button class="action" id="stopTracking">Stop tracking</button>
         <label class="switch-row">
@@ -139,7 +145,8 @@
           <option value="24" selected>History: last 24 hours</option>
           <option value="168">History: last 7 days</option>
         </select>
-      </section>
+        </div>
+      </details>
 
       <section class="map-layout">
         <div class="map-panel">
@@ -189,6 +196,25 @@
             <button class="action full" id="refreshPairCode">Create pairing code</button>
           </section>
 
+
+          <section class="places-card">
+            <div class="section-title">
+              <h3>Saved places</h3>
+              <span class="step-pill">Labels</span>
+            </div>
+            <p class="pair-help">Save places your child visits often. SafeSteps will label the map when they are at or near one of these places.</p>
+            <form class="place-form" id="placeForm">
+              <input id="placeName" name="placeName" type="text" placeholder="Home, School, Park" autocomplete="off">
+              <select id="placeRadius" aria-label="Place radius">
+                <option value="50">Radius: 50 m</option>
+                <option value="100" selected>Radius: 100 m</option>
+                <option value="250">Radius: 250 m</option>
+                <option value="500">Radius: 500 m</option>
+              </select>
+              <button class="action full" type="submit">Save selected child location</button>
+            </form>
+            <div class="place-list" id="placeList"></div>
+          </section>
           <section>
             <div class="section-title">
               <h3>Live details</h3>
@@ -215,6 +241,6 @@
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260521-2"></script>
+  <script src="app.js?v=20260529-1"></script>
 </body>
 </html>
