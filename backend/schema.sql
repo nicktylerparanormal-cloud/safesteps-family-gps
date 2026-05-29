@@ -39,6 +39,16 @@ CREATE TABLE IF NOT EXISTS pairing_sessions (
   created_at BIGINT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS places (
+  id TEXT PRIMARY KEY,
+  parent_id TEXT NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  latitude DOUBLE PRECISION NOT NULL,
+  longitude DOUBLE PRECISION NOT NULL,
+  radius_meters DOUBLE PRECISION NOT NULL,
+  created_at BIGINT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS location_pings (
   id TEXT PRIMARY KEY,
   child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
@@ -75,6 +85,7 @@ CREATE TABLE IF NOT EXISTS data_deletion_requests (
 
 CREATE INDEX IF NOT EXISTS idx_pairing_code ON pairing_sessions(code);
 CREATE INDEX IF NOT EXISTS idx_location_child_received ON location_pings(child_id, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_places_parent ON places(parent_id);
 CREATE INDEX IF NOT EXISTS idx_parent_sessions_token ON parent_sessions(token_hash);
 CREATE INDEX IF NOT EXISTS idx_parent_email ON parents(email);
 
