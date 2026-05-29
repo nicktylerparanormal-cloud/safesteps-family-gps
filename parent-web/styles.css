@@ -589,6 +589,13 @@ select {
   width: 100%;
 }
 
+.action.danger {
+  margin-top: 10px;
+  border-color: #f1b7b0;
+  background: #fff5f3;
+  color: #9f2f24;
+}
+
 .switch-row {
   min-height: 44px;
   display: inline-flex;
@@ -1003,4 +1010,176 @@ select {
 
 .app-shell.view-setup .details section:not(.setup-card):not(.places-card) {
   display: none !important;
+}
+
+/* Guided parent setup */
+.parent-onboarding {
+  display: none;
+  min-height: calc(100vh - 120px);
+  align-items: center;
+  justify-items: center;
+  padding: 28px;
+}
+
+.app-shell.onboarding-active .parent-onboarding {
+  display: grid;
+}
+
+.app-shell.onboarding-active .topbar,
+.app-shell.onboarding-active .quick-actions,
+.app-shell.onboarding-active .map-layout {
+  display: none !important;
+}
+
+.onboarding-card {
+  width: min(680px, 100%);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 26px;
+  display: grid;
+  gap: 18px;
+}
+
+.onboarding-card h2 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.onboarding-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.onboarding-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.onboarding-add input {
+  min-height: 52px;
+  border: 1px solid #c8d3e1;
+  border-radius: 6px;
+  padding: 0 14px;
+  font-size: 17px;
+}
+
+.onboarding-steps {
+  background: #f4f7fb;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 16px 16px 34px;
+}
+
+.pairing-display {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pairing-display div {
+  border: 1px dashed #b8c7da;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 16px;
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+
+.pairing-display span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pairing-display strong {
+  font-size: 34px;
+  letter-spacing: 0;
+  color: var(--blue);
+}
+
+.onboarding-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plan-options {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.plan-option {
+  width: 100%;
+  border: 1px solid #2c4058;
+  border-radius: 8px;
+  background: #102033;
+  color: #ffffff;
+  padding: 12px;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  cursor: pointer;
+}
+
+.plan-option strong,
+.plan-option span,
+.plan-option small {
+  margin: 0;
+}
+
+.plan-option span {
+  color: #b9c6d8;
+  font-size: 13px;
+}
+
+.plan-option small {
+  color: #ffffff;
+  font-weight: 900;
+  grid-row: span 2;
+  align-self: center;
+}
+
+.plan-option.active {
+  border-color: #74a7ff;
+  background: #1f6feb;
+  box-shadow: 0 0 0 2px rgba(116, 167, 255, 0.28);
+}
+
+.plan-option.active span,
+.plan-option.active small {
+  color: #ffffff;
+}
+
+.view-tab.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #ffffff;
+}
+
+@media (max-width: 820px) {
+  .parent-onboarding {
+    min-height: auto;
+    padding: 18px;
+  }
+
+  .onboarding-card h2 {
+    font-size: 28px;
+  }
+
+  .onboarding-add,
+  .pairing-display,
+  .onboarding-actions {
+    grid-template-columns: 1fr;
+  }
 }
