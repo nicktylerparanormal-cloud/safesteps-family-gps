@@ -199,7 +199,8 @@ async function loadChildren() {
 function normalizeChild(child) {
   const pings = child.pings || [];
   const latest = child.latest;
-  return {
+    const latestAccuracyLabel = latest ? accuracyLabel(latest.accuracyMeters) : "Waiting for accurate location";
+return {
     id: child.id,
     name: child.name,
     paired: child.paired,
