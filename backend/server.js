@@ -212,6 +212,20 @@ async function updateChildPairing(childId, deviceToken, deviceName) {
   );
 }
 
+
+async function deleteChildForParent(parentId, childId) {
+  if (!pgPool) {
+    const child = state.children.find((item) => item.id === childId && item.parentId === parentId);
+    if (!child) return false;
+    state.locationPings = state.locationPings.filter((ping) => ping.childId !== childId);
+    state.pairingSessions = state.pairingSessions.filter((session) => session.childId !== childId);
+    state.children = state.children.filter((item) => item.id !== childId);
+    saveJsonDb();
+    return true;
+  }
+  const result = await pgPool.query("DELETE FROM children WHERE id = $1 AND parent_id = $2 RETURNING id", [childId, parentId]);
+  return result.rowCount > 0;
+}
 async function childrenForParent(parentId) {
   if (!pgPool) return state.children.filter((child) => child.parentId === parentId);
   const result = await pgPool.query(
@@ -300,6 +314,30 @@ async function latestPingsForChildren(children) {
   return result.rows;
 }
 
+
+async function clearChildLocationHistory(parentId, childId) {
+  if (!pgPool) {
+    const child = state.children.find((item) => item.id === childId && item.parentId === parentId);
+    if (!child) return false;
+    state.locationPings = state.locationPings.filter((ping) => ping.childId !== childId);
+    saveJsonDb();
+    return true;
+  }
+  const childResult = await pgPool.query("SELECT id FROM children WHERE id = $1 AND parent_id = $2", [childId, parentId]);
+  if (!childResult.rowCount) return false;
+  await pgPool.query("DELETE FROM location_pings WHERE child_id = $1", [childId]);
+  return true;
+}
+
+async function parentDisplayNameById(parentId) {
+  if (!pgPool) {
+    const parent = state.parents.find((item) => item.id === parentId);
+    return parent?.name || parent?.email || "parent";
+  }
+  const result = await pgPool.query("SELECT name, email FROM parents WHERE id = $1", [parentId]);
+  const parent = result.rows[0] || {};
+  return parent.name || parent.email || "parent";
+}
 async function insertLocationPing(ping) {
   if (!pgPool) {
     state.locationPings.push(ping);
@@ -565,6 +603,40 @@ async function api(request, response) {
     sendJson(response, 201, { place });
     return;
   }
+
+
+  if (request.method === "POST" && url.pathname.startsWith("/api/children/") && url.pathname.endsWith("/clear-location-history")) {
+    const parent = await requireParent(request, response);
+    if (!parent) return;
+    const childId = decodeURIComponent(url.pathname.replace("/api/children/", "").replace("/clear-location-history", "")).trim();
+    if (!childId) {
+      sendJson(response, 400, { error: "Child id is required" });
+      return;
+    }
+    const cleared = await clearChildLocationHistory(parent.id, childId);
+    if (!cleared) {
+      sendJson(response, 404, { error: "Child not found" });
+      return;
+    }
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+  if (request.method === "DELETE" && url.pathname.startsWith("/api/children/")) {
+    const parent = await requireParent(request, response);
+    if (!parent) return;
+    const childId = decodeURIComponent(url.pathname.replace("/api/children/", "")).trim();
+    if (!childId) {
+      sendJson(response, 400, { error: "Child id is required" });
+      return;
+    }
+    const deleted = await deleteChildForParent(parent.id, childId);
+    if (!deleted) {
+      sendJson(response, 404, { error: "Child not found" });
+      return;
+    }
+    sendJson(response, 200, { ok: true });
+    return;
+  }
   if (request.method === "GET" && url.pathname === "/api/children") {
     const parent = await requireParent(request, response);
     if (!parent) return;
@@ -590,7 +662,8 @@ async function api(request, response) {
     sendJson(response, 200, {
       childId: session.childId,
       deviceToken,
-      locationEndpoint: `${publicBaseUrl}/api/child/location-pings`
+      locationEndpoint: `${publicBaseUrl}/api/child/location-pings`,
+      parentName: await parentDisplayNameById(session.parentId)
     });
     return;
   }
