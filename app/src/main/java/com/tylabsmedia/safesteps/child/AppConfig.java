@@ -1,13 +1,16 @@
 package com.tylabsmedia.safesteps.child;
 
 final class AppConfig {
-    static final String DEFAULT_API_BASE_URL = "http://192.168.0.171:8787";
+    static final String DEFAULT_API_BASE_URL = "https://safesteps-family-gps.onrender.com";
+    static final String PRIVACY_POLICY_URL = "https://tylabsmedia.co.uk/safesteps-privacy-policy/";
+    static final String DELETE_DATA_URL = "https://tylabsmedia.co.uk/safesteps-delete-data/";
     static final String PREFS = "safesteps_family_gps_child";
     static final String KEY_API_BASE_URL = "api_base_url";
     static final String KEY_ENDPOINT = "endpoint";
     static final String KEY_DEVICE_TOKEN = "device_token";
     static final String KEY_CHILD_ID = "child_id";
     static final String KEY_CHILD_NAME = "child_name";
+    static final String KEY_PARENT_NAME = "parent_name";
     static final String KEY_TRACKING_ENABLED = "tracking_enabled";
     static final String KEY_ROLE = "role";
     static final String KEY_ACTIVE_PLAN = "active_plan";
