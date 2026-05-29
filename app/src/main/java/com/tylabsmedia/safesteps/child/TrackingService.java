@@ -20,9 +20,11 @@ import android.util.Log;
 
 public class TrackingService extends Service implements LocationListener {
     private static final String TAG = "TrackingService";
-    private static final long MIN_TIME_MS = 15_000L;
-    private static final float MIN_DISTANCE_METERS = 15f;
+    private static final long MIN_TIME_MS = 5_000L;
+    private static final float MIN_DISTANCE_METERS = 5f;
+    private static final long LAST_KNOWN_MAX_AGE_MS = 2 * 60_000L;
 
+    private Location lastSentLocation;
     private LocationManager locationManager;
     private SharedPreferences prefs;
     private final LocationPingClient pingClient = new LocationPingClient();
@@ -94,6 +96,7 @@ public class TrackingService extends Service implements LocationListener {
 
         tryRequest(LocationManager.GPS_PROVIDER);
         tryRequest(LocationManager.NETWORK_PROVIDER);
+        sendBestLastKnownLocation();
     }
 
     private void tryRequest(String provider) {
@@ -106,6 +109,58 @@ public class TrackingService extends Service implements LocationListener {
         } catch (IllegalArgumentException error) {
             Log.w(TAG, "Provider unavailable: " + provider, error);
         }
+    }
+
+    private void sendBestLastKnownLocation() {
+        Location best = null;
+        best = betterLocation(best, lastKnown(LocationManager.GPS_PROVIDER));
+        best = betterLocation(best, lastKnown(LocationManager.NETWORK_PROVIDER));
+        if (best != null) {
+            onLocationChanged(best);
+        }
+    }
+
+    private Location lastKnown(String provider) {
+        try {
+            if (locationManager != null && locationManager.isProviderEnabled(provider)) {
+                return locationManager.getLastKnownLocation(provider);
+            }
+        } catch (SecurityException error) {
+            Log.w(TAG, "Location permission missing", error);
+        } catch (IllegalArgumentException error) {
+            Log.w(TAG, "Provider unavailable: " + provider, error);
+        }
+        return null;
+    }
+
+    private boolean shouldSendLocation(Location location) {
+        if (location == null) {
+            return false;
+        }
+        if (location.getTime() > 0 && System.currentTimeMillis() - location.getTime() > LAST_KNOWN_MAX_AGE_MS) {
+            return false;
+        }
+        if (location.hasAccuracy() && location.getAccuracy() > 200f && lastSentLocation != null) {
+            return System.currentTimeMillis() - lastSentLocation.getTime() > 60_000L;
+        }
+        return true;
+    }
+
+    private Location betterLocation(Location current, Location candidate) {
+        if (candidate == null) {
+            return current;
+        }
+        if (current == null) {
+            return candidate;
+        }
+        if (candidate.hasAccuracy() && !current.hasAccuracy()) {
+            return candidate;
+        }
+        if (candidate.hasAccuracy() && current.hasAccuracy()
+                && candidate.getAccuracy() < current.getAccuracy()) {
+            return candidate;
+        }
+        return candidate.getTime() > current.getTime() ? candidate : current;
     }
 
     private void stopTracking() {
