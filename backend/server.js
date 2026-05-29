@@ -264,6 +264,27 @@ async function updatePairingStatus(sessionId, status) {
   await pgPool.query("UPDATE pairing_sessions SET status = $1 WHERE id = $2", [status, sessionId]);
 }
 
+
+async function placesForParent(parentId) {
+  if (!pgPool) return state.places.filter((place) => place.parentId === parentId);
+  const result = await pgPool.query(
+    "SELECT id, parent_id AS \"parentId\", name, latitude, longitude, radius_meters AS \"radiusMeters\", created_at AS \"createdAt\" FROM places WHERE parent_id = $1 ORDER BY created_at",
+    [parentId]
+  );
+  return result.rows;
+}
+
+async function insertPlace(place) {
+  if (!pgPool) {
+    state.places.push(place);
+    saveJsonDb();
+    return;
+  }
+  await pgPool.query(
+    "INSERT INTO places (id, parent_id, name, latitude, longitude, radius_meters, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    [place.id, place.parentId, place.name, place.latitude, place.longitude, place.radiusMeters, place.createdAt]
+  );
+}
 async function latestPingsForChildren(children) {
   const childIds = children.map((child) => child.id);
   if (!childIds.length) return [];
@@ -526,12 +547,31 @@ async function api(request, response) {
     return;
   }
 
+
+  if (request.method === "POST" && url.pathname === "/api/places") {
+    const parent = await requireParent(request, response);
+    if (!parent) return;
+    const body = await readBody(request);
+    const name = String(body.name || "Place").trim().replace(/\s+/g, " ").slice(0, 40) || "Place";
+    const latitude = Number(body.latitude);
+    const longitude = Number(body.longitude);
+    const radiusMeters = Math.max(25, Math.min(1000, Number(body.radiusMeters || 100)));
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      sendJson(response, 400, { error: "A place needs a valid latitude and longitude." });
+      return;
+    }
+    const place = { id: id("pla"), parentId: parent.id, name, latitude, longitude, radiusMeters, createdAt: now() };
+    await insertPlace(place);
+    sendJson(response, 201, { place });
+    return;
+  }
   if (request.method === "GET" && url.pathname === "/api/children") {
     const parent = await requireParent(request, response);
     if (!parent) return;
     const children = await childrenForParent(parent.id);
     const pings = await latestPingsForChildren(children);
-    sendJson(response, 200, { children: children.map((child) => withPings(child, pings)) });
+    const places = await placesForParent(parent.id);
+    sendJson(response, 200, { children: children.map((child) => withPings(child, pings, places)), places });
     return;
   }
 
@@ -594,19 +634,48 @@ function numberOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function withPings(child, allPings) {
+function withPings(child, allPings, places = []) {
   const pings = allPings.filter((ping) => ping.childId === child.id).slice(0, 200);
+  const latest = pings[0] || null;
   return {
     id: child.id,
     name: child.name,
     paired: Boolean(child.pairedAt),
     deviceName: child.deviceName || "",
     pairedAt: child.pairedAt || null,
-    latest: pings[0] || null,
+    latest,
+    placeStatus: placeStatusForPing(latest, places),
     pings
   };
 }
 
+
+function placeStatusForPing(ping, places) {
+  if (!ping || !places.length) return { label: "No saved places yet", type: "none" };
+  const matches = places
+    .map((place) => ({ place, distanceMeters: distanceMeters(ping.latitude, ping.longitude, place.latitude, place.longitude) }))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+  const nearest = matches[0];
+  if (!nearest) return { label: "Away from saved places", type: "away" };
+  const accuracy = Number(ping.accuracyMeters || 0);
+  if (nearest.distanceMeters <= nearest.place.radiusMeters) {
+    return { label: `At ${nearest.place.name}`, type: "inside", placeName: nearest.place.name, distanceMeters: Math.round(nearest.distanceMeters) };
+  }
+  if (accuracy > 0 && nearest.distanceMeters <= nearest.place.radiusMeters + accuracy) {
+    return { label: `Approximate near ${nearest.place.name}`, type: "near", placeName: nearest.place.name, distanceMeters: Math.round(nearest.distanceMeters) };
+  }
+  return { label: `Away from saved places - ${Math.round(nearest.distanceMeters)} m from ${nearest.place.name}`, type: "away", placeName: nearest.place.name, distanceMeters: Math.round(nearest.distanceMeters) };
+}
+
+function distanceMeters(latA, lonA, latB, lonB) {
+  const earthRadius = 6371000;
+  const toRad = (value) => Number(value) * Math.PI / 180;
+  const dLat = toRad(latB - latA);
+  const dLon = toRad(lonB - lonA);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(latA)) * Math.cos(toRad(latB)) * Math.sin(dLon / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 const server = http.createServer(async (request, response) => {
   try {
     if (request.method === "OPTIONS") {
