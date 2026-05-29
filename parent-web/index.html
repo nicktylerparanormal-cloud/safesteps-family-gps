@@ -6,7 +6,7 @@
   <meta name="description" content="SafeSteps Family GPS by Tylabs Media helps parents see live child location, route history, safe zones, battery status, and family safety alerts.">
   <title>SafeSteps Family GPS by Tylabs Media</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=20260529-1">
+  <link rel="stylesheet" href="styles.css?v=20260529-2">
 </head>
 <body>
   <section class="welcome-screen" id="welcomeScreen">
@@ -92,9 +92,20 @@
       </section>
 
       <section class="plan-card" aria-label="Subscription plan">
-        <span>7-day free trial</span>
-        <strong id="planName">Plus - 2 children</strong>
-        <small id="planPrice">GBP 3.99/month</small>
+        <span>Choose a plan</span>
+        <strong id="planName">Starter - 1 child</strong>
+        <small id="planPrice">Free trial starts only after Google Play confirmation</small>
+        <div class="plan-options" id="planOptions">
+          <button type="button" class="plan-option active" data-plan="starter" data-limit="1">
+            <strong>Starter</strong><span>1 child</span><small>GBP 2.99/mo</small>
+          </button>
+          <button type="button" class="plan-option" data-plan="plus" data-limit="2">
+            <strong>Plus</strong><span>2 children</span><small>GBP 3.99/mo</small>
+          </button>
+          <button type="button" class="plan-option" data-plan="family" data-limit="6">
+            <strong>Family</strong><span>up to 6</span><small>GBP 7.99/mo</small>
+          </button>
+        </div>
       </section>
 
       <form class="add-member" id="addMemberForm">
@@ -114,6 +125,41 @@
     </aside>
 
     <section class="workspace">
+      <section class="parent-onboarding" id="parentOnboarding">
+        <div class="onboarding-card" data-step="welcome">
+          <p class="eyebrow">Parent setup</p>
+          <h2>Welcome to SafeSteps, let's get you set up.</h2>
+          <p>Before we start, make sure your children have installed SafeSteps and chosen <strong>I'm a child</strong> on their phone.</p>
+          <button class="action primary full" id="onboardingBegin" type="button">Start setup</button>
+        </div>
+        <div class="onboarding-card is-hidden" data-step="child-name">
+          <p class="eyebrow">Step 1</p>
+          <h2>Add your child</h2>
+          <p>Start with the child's first name or nickname. You can add more children after the first phone is paired.</p>
+          <form class="onboarding-add" id="onboardingAddForm">
+            <input id="onboardingChildName" type="text" placeholder="Child name" autocomplete="off">
+            <button class="action primary" type="submit">Create pairing code</button>
+          </form>
+        </div>
+        <div class="onboarding-card is-hidden" data-step="pairing">
+          <p class="eyebrow">Step 2</p>
+          <h2>Pair the child phone</h2>
+          <ol class="setup-steps onboarding-steps">
+            <li>Open SafeSteps on the child's phone.</li>
+            <li>Choose <strong>I'm a child</strong>.</li>
+            <li>Enter the pairing code and passkey below.</li>
+            <li>Allow location permissions, then start sharing.</li>
+          </ol>
+          <div class="pairing-display">
+            <div><span>Pairing code</span><strong id="onboardingPairCode">------</strong></div>
+            <div><span>Passkey</span><strong id="onboardingPasskey">----</strong></div>
+          </div>
+          <div class="onboarding-actions">
+            <button class="action" id="onboardingAddAnother" type="button">Add another child</button>
+            <button class="action primary" id="onboardingStartMap" type="button">Start using the map</button>
+          </div>
+        </div>
+      </section>
       <header class="topbar">
         <div>
           <p class="eyebrow">Now viewing</p>
@@ -124,6 +170,7 @@
           <div class="view-switch" aria-label="Dashboard view">
             <button class="view-tab active" id="mapViewButton" type="button">Map</button>
             <button class="view-tab" id="setupViewButton" type="button">Setup</button>
+            <button class="view-tab" id="manageChildrenButton" type="button">Manage children</button>
           </div>
           <div class="trial-pill" id="serverStatus">Connecting to SafeSteps</div>
           <div class="status-pill" id="statusPill">Live</div>
@@ -135,6 +182,7 @@
         <div class="quick-action-body">
         <button class="action primary" id="startTracking">Start tracking</button>
         <button class="action" id="stopTracking">Stop tracking</button>
+        <button class="action" id="clearHistoryButton" type="button">Clear route history</button>
         <label class="switch-row">
           <input type="checkbox" id="autoTrack">
           <span>Auto track this child</span>
@@ -194,6 +242,7 @@
             <div class="pair-code empty" id="pairCode">No code yet</div>
             <div class="passkey-code" id="passkeyCode">Passkey appears here</div>
             <button class="action full" id="refreshPairCode">Create pairing code</button>
+            <button class="action full danger" id="resetChildButton" type="button">Remove child and start fresh</button>
           </section>
 
 
@@ -241,6 +290,6 @@
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260529-1"></script>
+  <script src="app.js?v=20260529-2"></script>
 </body>
 </html>
