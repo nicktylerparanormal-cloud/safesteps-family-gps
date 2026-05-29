@@ -6,7 +6,7 @@
   <meta name="description" content="SafeSteps Family GPS by Tylabs Media helps parents see live child location, route history, safe zones, battery status, and family safety alerts.">
   <title>SafeSteps Family GPS by Tylabs Media</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=20260529-2">
+  <link rel="stylesheet" href="styles.css?v=20260529-3">
 </head>
 <body>
   <section class="welcome-screen" id="welcomeScreen">
@@ -248,19 +248,36 @@
 
           <section class="places-card">
             <div class="section-title">
-              <h3>Saved places</h3>
-              <span class="step-pill">Labels</span>
+              <h3>Places and areas</h3>
+              <span class="step-pill">Safety</span>
             </div>
-            <p class="pair-help">Save places your child visits often. SafeSteps will label the map when they are at or near one of these places.</p>
+            <p class="pair-help">Add home, school, parks, friends' houses, or safety areas. Use an address, map coordinates, or the child's current location.</p>
             <form class="place-form" id="placeForm">
-              <input id="placeName" name="placeName" type="text" placeholder="Home, School, Park" autocomplete="off">
-              <select id="placeRadius" aria-label="Place radius">
-                <option value="50">Radius: 50 m</option>
-                <option value="100" selected>Radius: 100 m</option>
-                <option value="250">Radius: 250 m</option>
-                <option value="500">Radius: 500 m</option>
+              <select id="placeKind" aria-label="Place type">
+                <option value="home">Home</option>
+                <option value="school">School</option>
+                <option value="park">Park</option>
+                <option value="friend">Friend's house</option>
+                <option value="work">Work</option>
+                <option value="other" selected>Other place</option>
               </select>
-              <button class="action full" type="submit">Save selected child location</button>
+              <input id="placeName" name="placeName" type="text" placeholder="Name, e.g. Home or School" autocomplete="off">
+              <input id="placeAddress" name="placeAddress" type="text" placeholder="Address or postcode" autocomplete="street-address">
+              <button class="action full" id="findAddressButton" type="button">Find address</button>
+              <input id="placeLatLng" name="placeLatLng" type="text" placeholder="Optional: latitude, longitude" autocomplete="off">
+              <select id="placeZoneMode" aria-label="Place safety mode">
+                <option value="place" selected>Known place: label when nearby</option>
+                <option value="safe">Allowed area: alert if outside radius</option>
+                <option value="restricted">Restricted area: alert if inside radius</option>
+              </select>
+              <select id="placeRadius" aria-label="Place radius">
+                <option value="50">Distance: 50 m</option>
+                <option value="100" selected>Distance: 100 m</option>
+                <option value="250">Distance: 250 m</option>
+                <option value="500">Distance: 500 m</option>
+                <option value="1000">Distance: 1 km</option>
+              </select>
+              <button class="action full" type="submit">Save place or safety area</button>
             </form>
             <div class="place-list" id="placeList"></div>
           </section>
@@ -290,6 +307,6 @@
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=20260529-2"></script>
+  <script src="app.js?v=20260529-3"></script>
 </body>
 </html>
