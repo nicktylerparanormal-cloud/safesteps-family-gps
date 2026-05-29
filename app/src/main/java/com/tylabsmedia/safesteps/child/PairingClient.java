@@ -20,11 +20,13 @@ final class PairingClient {
         final String childId;
         final String deviceToken;
         final String locationEndpoint;
+        final String parentName;
 
-        PairingResult(String childId, String deviceToken, String locationEndpoint) {
+        PairingResult(String childId, String deviceToken, String locationEndpoint, String parentName) {
             this.childId = childId;
             this.deviceToken = deviceToken;
             this.locationEndpoint = locationEndpoint;
+            this.parentName = parentName == null || parentName.trim().isEmpty() ? "parent" : parentName.trim();
         }
     }
 
@@ -60,7 +62,8 @@ final class PairingClient {
                 PairingResult result = new PairingResult(
                         valueFrom(response, "childId"),
                         valueFrom(response, "deviceToken"),
-                        valueFrom(response, "locationEndpoint"));
+                        valueFrom(response, "locationEndpoint"),
+                        valueFrom(response, "parentName"));
                 callback.onResult(true, result, "Paired");
             } catch (Exception error) {
                 callback.onResult(false, null, error.getClass().getSimpleName() + ": " + error.getMessage());
