@@ -21,7 +21,12 @@ const planPrice = document.getElementById("planPrice");
 const memberList = document.getElementById("memberList");
 const addMemberForm = document.getElementById("addMemberForm");
 const placeForm = document.getElementById("placeForm");
+const placeKind = document.getElementById("placeKind");
 const placeName = document.getElementById("placeName");
+const placeAddress = document.getElementById("placeAddress");
+const placeLatLng = document.getElementById("placeLatLng");
+const placeZoneMode = document.getElementById("placeZoneMode");
+const findAddressButton = document.getElementById("findAddressButton");
 const placeRadius = document.getElementById("placeRadius");
 const placeList = document.getElementById("placeList");
 const authForm = document.getElementById("authForm");
@@ -394,56 +399,104 @@ function renderMembers() {
 }
 
 
+
+function placeKindLabel(kind) {
+  const labels = { home: "Home", school: "School", park: "Park", friend: "Friend's house", work: "Work", other: "Place" };
+  return labels[kind] || "Place";
+}
+
+function zoneModeLabel(mode) {
+  if (mode === "safe") return "Allowed area";
+  if (mode === "restricted") return "Restricted area";
+  return "Known place";
+}
+
 function renderPlaces() {
   if (!placeList) return;
   placeList.innerHTML = "";
   if (!places.length) {
-    placeList.innerHTML = `<p class="empty-note">No saved places yet.</p>`;
+    placeList.innerHTML = '<p class="empty-note">No places or safety areas yet.</p>';
     return;
   }
   places.forEach((savedPlace) => {
     const row = document.createElement("div");
-    row.className = "place-item";
-    row.innerHTML = `<strong>${escapeHtml(savedPlace.name)}</strong><span>${Math.round(savedPlace.radiusMeters)} m radius</span>`;
+    row.className = 'place-item ' + (savedPlace.zoneMode || "place");
+    const address = savedPlace.address ? '<span>' + escapeHtml(savedPlace.address) + '</span>' : "";
+    row.innerHTML = '<strong>' + escapeHtml(savedPlace.name) + '</strong><span>' + placeKindLabel(savedPlace.kind) + ' - ' + zoneModeLabel(savedPlace.zoneMode) + ' - ' + Math.round(savedPlace.radiusMeters) + ' m</span>' + address;
     placeList.appendChild(row);
   });
 }
 
 function renderPlaceCircles() {
   if (!placeLayer || !window.L) return;
+  placeLayer.clearLayers();
   places.forEach((savedPlace) => {
+    const mode = savedPlace.zoneMode || "place";
+    const color = mode === "safe" ? "#157347" : mode === "restricted" ? "#b42318" : "#0e8aa3";
     L.circle([Number(savedPlace.latitude), Number(savedPlace.longitude)], {
       radius: Number(savedPlace.radiusMeters || 100),
-      color: "#0e8aa3",
+      color,
       weight: 2,
-      fillColor: "#0e8aa3",
-      fillOpacity: 0.08
-    }).bindPopup(`${savedPlace.name}<br>${Math.round(savedPlace.radiusMeters)} m area`).addTo(placeLayer);
+      fillColor: color,
+      fillOpacity: mode === "place" ? 0.08 : 0.12
+    }).bindPopup(savedPlace.name + '<br>' + zoneModeLabel(mode) + '<br>' + Math.round(savedPlace.radiusMeters) + ' m').addTo(placeLayer);
   });
 }
 
-async function createPlace() {
+async function geocodeAddress(address) {
+  const query = address.trim();
+  if (!query) throw new Error("Enter an address or postcode first.");
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query);
+  const response = await fetch(url, { headers: { "Accept": "application/json" } });
+  const results = await response.json().catch(() => []);
+  if (!response.ok || !results.length) throw new Error("Address not found. Try a postcode or enter latitude, longitude.");
+  return { latitude: Number(results[0].lat), longitude: Number(results[0].lon), label: results[0].display_name || query };
+}
+
+function parseLatLng(value) {
+  const parts = String(value || "").split(",").map((part) => Number(part.trim()));
+  if (parts.length !== 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) return null;
+  return { latitude: parts[0], longitude: parts[1] };
+}
+
+async function placeCoordinates() {
+  const typed = parseLatLng(placeLatLng.value);
+  if (typed) return typed;
+  if (placeAddress.value.trim()) {
+    const result = await geocodeAddress(placeAddress.value);
+    placeLatLng.value = result.latitude.toFixed(6) + ', ' + result.longitude.toFixed(6);
+    return result;
+  }
   const child = currentChild();
-  if (!child || !Number.isFinite(child.latitude) || !Number.isFinite(child.longitude)) {
-    serverStatus.textContent = "Wait for this child's live location before saving a place.";
-    serverStatus.classList.add("error");
-    return;
+  if (child && Number.isFinite(child.latitude) && Number.isFinite(child.longitude)) {
+    return { latitude: child.latitude, longitude: child.longitude };
   }
-  const name = placeName.value.trim();
-  if (!name) {
-    placeName.placeholder = "Name this place first";
-    return;
-  }
+  throw new Error("Add an address, coordinates, or wait for the child's live location.");
+}
+
+async function createPlace() {
+  const name = placeName.value.trim() || placeKindLabel(placeKind.value);
+  const coords = await placeCoordinates();
   const data = await api("/api/places", {
     method: "POST",
-    body: JSON.stringify({ name, radiusMeters: Number(placeRadius.value), latitude: child.latitude, longitude: child.longitude })
+    body: JSON.stringify({
+      name,
+      kind: placeKind.value,
+      address: placeAddress.value.trim(),
+      zoneMode: placeZoneMode.value,
+      radiusMeters: Number(placeRadius.value),
+      latitude: coords.latitude,
+      longitude: coords.longitude
+    })
   });
   places.push(data.place);
   placeName.value = "";
-  serverStatus.textContent = `${data.place.name} saved`;
+  placeAddress.value = "";
+  placeLatLng.value = "";
+  serverStatus.textContent = data.place.name + " saved";
   serverStatus.classList.remove("error");
   renderPlaces();
-  renderMap(child);
+  renderMap(currentChild());
 }
 function renderHistory() {
   const hours = Number(historyRange.value);
@@ -461,12 +514,15 @@ function renderEmptyMap() {
   ensureMap();
   routeLayer.clearLayers();
   markerLayer.clearLayers();
+  if (placeLayer) placeLayer.clearLayers();
 }
 
 function renderMap(child) {
   ensureMap();
   routeLayer.clearLayers();
   markerLayer.clearLayers();
+  renderPlaceCircles();
+  if (!child) return;
   const points = child.route.filter((point) => Array.isArray(point) && point.length === 2);
   if (!points.length) return;
   const latLngs = points.map(([lat, lng]) => [lat, lng]);
@@ -589,6 +645,18 @@ async function resetSelectedChild() {
   setDashboardView("setup");
   serverStatus.textContent = `${child.name} removed. Add the child again to start fresh.`;
 }
+
+findAddressButton.addEventListener("click", async () => {
+  try {
+    const result = await geocodeAddress(placeAddress.value);
+    placeLatLng.value = result.latitude.toFixed(6) + ", " + result.longitude.toFixed(6);
+    serverStatus.textContent = "Address found. Review the distance, then save.";
+    serverStatus.classList.remove("error");
+  } catch (error) {
+    serverStatus.textContent = error.message;
+    serverStatus.classList.add("error");
+  }
+});
 
 placeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
