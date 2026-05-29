@@ -1183,3 +1183,20 @@ select {
     grid-template-columns: 1fr;
   }
 }
+.place-form {
+  display: grid;
+  gap: 10px;
+}
+
+.place-form input,
+.place-form select {
+  width: 100%;
+}
+
+.place-item.safe {
+  border-left: 4px solid var(--green);
+}
+
+.place-item.restricted {
+  border-left: 4px solid var(--red);
+}
