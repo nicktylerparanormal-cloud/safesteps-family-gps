@@ -282,7 +282,7 @@ async function updatePairingStatus(sessionId, status) {
 async function placesForParent(parentId) {
   if (!pgPool) return state.places.filter((place) => place.parentId === parentId);
   const result = await pgPool.query(
-    "SELECT id, parent_id AS \"parentId\", name, latitude, longitude, radius_meters AS \"radiusMeters\", created_at AS \"createdAt\" FROM places WHERE parent_id = $1 ORDER BY created_at",
+    "SELECT id, parent_id AS \"parentId\", name, kind, address, zone_mode AS \"zoneMode\", latitude, longitude, radius_meters AS \"radiusMeters\", created_at AS \"createdAt\" FROM places WHERE parent_id = $1 ORDER BY created_at",
     [parentId]
   );
   return result.rows;
@@ -295,8 +295,8 @@ async function insertPlace(place) {
     return;
   }
   await pgPool.query(
-    "INSERT INTO places (id, parent_id, name, latitude, longitude, radius_meters, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    [place.id, place.parentId, place.name, place.latitude, place.longitude, place.radiusMeters, place.createdAt]
+    "INSERT INTO places (id, parent_id, name, kind, address, zone_mode, latitude, longitude, radius_meters, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+    [place.id, place.parentId, place.name, place.kind, place.address, place.zoneMode, place.latitude, place.longitude, place.radiusMeters, place.createdAt]
   );
 }
 async function latestPingsForChildren(children) {
@@ -591,14 +591,21 @@ async function api(request, response) {
     if (!parent) return;
     const body = await readBody(request);
     const name = String(body.name || "Place").trim().replace(/\s+/g, " ").slice(0, 40) || "Place";
+    const kind = ["home", "school", "park", "friend", "work", "other"].includes(String(body.kind || "").toLowerCase())
+      ? String(body.kind).toLowerCase()
+      : "other";
+    const zoneMode = ["place", "safe", "restricted"].includes(String(body.zoneMode || "").toLowerCase())
+      ? String(body.zoneMode).toLowerCase()
+      : "place";
+    const address = String(body.address || "").trim().replace(/\s+/g, " ").slice(0, 160);
     const latitude = Number(body.latitude);
     const longitude = Number(body.longitude);
-    const radiusMeters = Math.max(25, Math.min(1000, Number(body.radiusMeters || 100)));
+    const radiusMeters = Math.max(25, Math.min(5000, Number(body.radiusMeters || 100)));
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       sendJson(response, 400, { error: "A place needs a valid latitude and longitude." });
       return;
     }
-    const place = { id: id("pla"), parentId: parent.id, name, latitude, longitude, radiusMeters, createdAt: now() };
+    const place = { id: id("pla"), parentId: parent.id, name, kind, address, zoneMode, latitude, longitude, radiusMeters, createdAt: now() };
     await insertPlace(place);
     sendJson(response, 201, { place });
     return;
@@ -724,20 +731,31 @@ function withPings(child, allPings, places = []) {
 
 
 function placeStatusForPing(ping, places) {
-  if (!ping || !places.length) return { label: "No saved places yet", type: "none" };
+  if (!ping || !places.length) return { label: "No places saved yet", type: "none" };
   const matches = places
     .map((place) => ({ place, distanceMeters: distanceMeters(ping.latitude, ping.longitude, place.latitude, place.longitude) }))
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
   const nearest = matches[0];
   if (!nearest) return { label: "Away from saved places", type: "away" };
   const accuracy = Number(ping.accuracyMeters || 0);
-  if (nearest.distanceMeters <= nearest.place.radiusMeters) {
-    return { label: `At ${nearest.place.name}`, type: "inside", placeName: nearest.place.name, distanceMeters: Math.round(nearest.distanceMeters) };
+  const radius = Number(nearest.place.radiusMeters || 100);
+  const inside = nearest.distanceMeters <= radius;
+  const near = accuracy > 0 && nearest.distanceMeters <= radius + accuracy;
+  const placeName = nearest.place.name;
+  const roundedDistance = Math.round(nearest.distanceMeters);
+  if (nearest.place.zoneMode === "safe" && !near) {
+    return { label: `Outside allowed area: ${placeName}`, type: "safe-alert", placeName, distanceMeters: roundedDistance };
   }
-  if (accuracy > 0 && nearest.distanceMeters <= nearest.place.radiusMeters + accuracy) {
-    return { label: `Approximate near ${nearest.place.name}`, type: "near", placeName: nearest.place.name, distanceMeters: Math.round(nearest.distanceMeters) };
+  if (nearest.place.zoneMode === "restricted" && inside) {
+    return { label: `In restricted area: ${placeName}`, type: "restricted-alert", placeName, distanceMeters: roundedDistance };
   }
-  return { label: `Away from saved places - ${Math.round(nearest.distanceMeters)} m from ${nearest.place.name}`, type: "away", placeName: nearest.place.name, distanceMeters: Math.round(nearest.distanceMeters) };
+  if (inside) {
+    return { label: `At ${placeName}`, type: "inside", placeName, distanceMeters: roundedDistance };
+  }
+  if (near) {
+    return { label: `Approximate near ${placeName}`, type: "near", placeName, distanceMeters: roundedDistance };
+  }
+  return { label: `Away from places - ${roundedDistance} m from ${placeName}`, type: "away", placeName, distanceMeters: roundedDistance };
 }
 
 function distanceMeters(latA, lonA, latB, lonB) {
