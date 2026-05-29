@@ -1,4 +1,5 @@
 let family = [];
+let places = [];
 let selectedId = "";
 let pendingPairings = JSON.parse(localStorage.getItem("safestepsPendingPairings") || "{}");
 let parentToken = localStorage.getItem("safestepsParentToken") || "";
@@ -17,6 +18,10 @@ const planName = document.getElementById("planName");
 const planPrice = document.getElementById("planPrice");
 const memberList = document.getElementById("memberList");
 const addMemberForm = document.getElementById("addMemberForm");
+const placeForm = document.getElementById("placeForm");
+const placeName = document.getElementById("placeName");
+const placeRadius = document.getElementById("placeRadius");
+const placeList = document.getElementById("placeList");
 const authForm = document.getElementById("authForm");
 const accountCard = document.getElementById("accountCard");
 const accountGreeting = document.getElementById("accountGreeting");
@@ -29,6 +34,8 @@ const selectedName = document.getElementById("selectedName");
 const selectedSummary = document.getElementById("selectedSummary");
 const statusPill = document.getElementById("statusPill");
 const serverStatus = document.getElementById("serverStatus");
+const mapViewButton = document.getElementById("mapViewButton");
+const setupViewButton = document.getElementById("setupViewButton");
 const quickActions = document.getElementById("quickActions");
 const startTracking = document.getElementById("startTracking");
 const stopTracking = document.getElementById("stopTracking");
@@ -54,6 +61,21 @@ const historyList = document.getElementById("historyList");
 let map;
 let routeLayer;
 let markerLayer;
+let placeLayer;
+let dashboardView = "map";
+
+function setDashboardView(view) {
+  dashboardView = view === "setup" ? "setup" : "map";
+  parentApp.classList.toggle("view-setup", dashboardView === "setup");
+  parentApp.classList.toggle("view-map", dashboardView === "map");
+  mapViewButton.classList.toggle("active", dashboardView === "map");
+  setupViewButton.classList.toggle("active", dashboardView === "setup");
+  if (dashboardView === "map") {
+    setTimeout(() => {
+      if (map) map.invalidateSize();
+    }, 0);
+  }
+}
 
 function currentChild() {
   return family.find((child) => child.id === selectedId) || family[0] || null;
@@ -161,6 +183,7 @@ async function api(path, options = {}) {
 async function loadChildren() {
   await ensureParent();
   const data = await api("/api/children");
+  places = data.places || [];
   family = data.children.map(normalizeChild);
   parentApp.classList.toggle("has-family", family.length > 0);
   if (!selectedId || !family.some((child) => child.id === selectedId)) {
@@ -184,9 +207,13 @@ function normalizeChild(child) {
     auto: true,
     battery: 100,
     place: latest ? `${Number(latest.latitude).toFixed(5)}, ${Number(latest.longitude).toFixed(5)}` : "Waiting for phone",
+    latitude: latest ? Number(latest.latitude) : null,
+    longitude: latest ? Number(latest.longitude) : null,
+    placeStatus: child.placeStatus || { label: "No saved places yet", type: "none" },
     speed: latest && latest.speedMetersPerSecond > 1 ? "Moving" : latest ? "Stationary" : "Not started",
     accuracy: latest ? Math.max(0, Math.round(latest.accuracyMeters || 0)) : 0,
     quality: latest ? accuracyQuality(latest.accuracyMeters) : "Waiting",
+    accuracyLabel: latestAccuracyLabel,
     stale: latest ? isStale(latest.receivedAt) : false,
     lastUpdate: latest ? timeAgo(latest.receivedAt) : child.paired ? "No location yet" : "Not paired",
     pairCode: pendingPairings[child.id]?.code || "",
@@ -195,7 +222,7 @@ function normalizeChild(child) {
     history: pings.length
       ? pings.slice(0, 8).map((ping) => [
           new Date(ping.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          `Location update - ${accuracyQuality(ping.accuracyMeters)} accuracy`
+          historyLabel(ping)
         ])
       : [[child.paired ? "Now" : "--", child.paired ? "Waiting for first location update" : "Pairing code created"]]
   };
@@ -242,7 +269,7 @@ function render() {
   autoTrack.checked = child.auto;
   modeLabel.textContent = child.auto ? "Auto" : "Manual";
   lastUpdate.textContent = child.lastUpdate;
-  accuracy.textContent = child.accuracy ? `${child.accuracy} m` : "--";
+  accuracy.textContent = child.accuracyLabel;
   qualityLabel.textContent = child.quality;
   pairCode.textContent = child.pairCode || (child.paired ? "Already paired" : "Create a code");
   pairCode.classList.toggle("empty", !child.pairCode || child.paired);
@@ -253,7 +280,7 @@ function render() {
   trackingState.textContent = child.tracking ? "On" : "Off";
   battery.textContent = `${child.battery}%`;
   speed.textContent = child.speed;
-  place.textContent = child.place;
+  place.textContent = child.placeStatus?.label || child.place;
   renderHistory();
   renderMap(child);
 }
@@ -261,7 +288,7 @@ function render() {
 function childSummary(child) {
   if (child.tracking) {
     const staleText = child.stale ? " - may be stale" : "";
-    return `${child.place} - updated ${child.lastUpdate}${staleText} - ${child.quality} accuracy`;
+    return `${child.placeStatus?.label || child.place} - updated ${child.lastUpdate}${staleText} - ${child.accuracyLabel}`;
   }
   if (child.paired) {
     return "Paired, waiting for the child phone to start sharing";
@@ -303,7 +330,7 @@ function renderMembers() {
     button.type = "button";
     const chipClass = child.tracking ? "live" : child.paired ? "waiting" : "unpaired";
     const chipLabel = child.stale ? "Stale" : child.tracking ? "Live" : child.paired ? "Waiting" : "Pair";
-    button.innerHTML = `<strong>${escapeHtml(child.name)}</strong><span>${child.tracking ? escapeHtml(child.lastUpdate) : child.paired ? "Waiting for location" : "Pairing needed"}</span><div class="member-meta"><span class="member-chip ${child.stale ? "waiting" : chipClass}">${chipLabel}</span><span class="member-chip">${child.accuracy ? `${child.accuracy} m` : "No accuracy"}</span><span class="member-chip">${escapeHtml(child.quality)}</span></div>`;
+    button.innerHTML = `<strong>${escapeHtml(child.name)}</strong><span>${child.tracking ? escapeHtml(child.lastUpdate) : child.paired ? "Waiting for location" : "Pairing needed"}</span><div class="member-meta"><span class="member-chip ${child.stale ? "waiting" : chipClass}">${chipLabel}</span><span class="member-chip">${escapeHtml(child.accuracyLabel)}</span></div>`;
     button.addEventListener("click", () => {
       selectedId = child.id;
       render();
@@ -312,6 +339,58 @@ function renderMembers() {
   });
 }
 
+
+function renderPlaces() {
+  if (!placeList) return;
+  placeList.innerHTML = "";
+  if (!places.length) {
+    placeList.innerHTML = `<p class="empty-note">No saved places yet.</p>`;
+    return;
+  }
+  places.forEach((savedPlace) => {
+    const row = document.createElement("div");
+    row.className = "place-item";
+    row.innerHTML = `<strong>${escapeHtml(savedPlace.name)}</strong><span>${Math.round(savedPlace.radiusMeters)} m radius</span>`;
+    placeList.appendChild(row);
+  });
+}
+
+function renderPlaceCircles() {
+  if (!placeLayer || !window.L) return;
+  places.forEach((savedPlace) => {
+    L.circle([Number(savedPlace.latitude), Number(savedPlace.longitude)], {
+      radius: Number(savedPlace.radiusMeters || 100),
+      color: "#0e8aa3",
+      weight: 2,
+      fillColor: "#0e8aa3",
+      fillOpacity: 0.08
+    }).bindPopup(`${savedPlace.name}<br>${Math.round(savedPlace.radiusMeters)} m area`).addTo(placeLayer);
+  });
+}
+
+async function createPlace() {
+  const child = currentChild();
+  if (!child || !Number.isFinite(child.latitude) || !Number.isFinite(child.longitude)) {
+    serverStatus.textContent = "Wait for this child's live location before saving a place.";
+    serverStatus.classList.add("error");
+    return;
+  }
+  const name = placeName.value.trim();
+  if (!name) {
+    placeName.placeholder = "Name this place first";
+    return;
+  }
+  const data = await api("/api/places", {
+    method: "POST",
+    body: JSON.stringify({ name, radiusMeters: Number(placeRadius.value), latitude: child.latitude, longitude: child.longitude })
+  });
+  places.push(data.place);
+  placeName.value = "";
+  serverStatus.textContent = `${data.place.name} saved`;
+  serverStatus.classList.remove("error");
+  renderPlaces();
+  renderMap(child);
+}
 function renderHistory() {
   const hours = Number(historyRange.value);
   const label = hours === 168 ? "7 days" : `${hours} hour${hours > 1 ? "s" : ""}`;
@@ -337,7 +416,7 @@ function renderMap(child) {
   const points = child.route.filter((point) => Array.isArray(point) && point.length === 2);
   if (!points.length) return;
   const latLngs = points.map(([lat, lng]) => [lat, lng]);
-  L.polyline(latLngs, { color: child.tracking ? "#1f6feb" : "#8b98aa", weight: 5 }).addTo(routeLayer);
+  L.polyline(latLngs, { color: child.tracking ? "#1f6feb" : "#8b98aa", weight: 3, opacity: 0.86 }).addTo(routeLayer);
   const latest = latLngs[latLngs.length - 1];
   L.circleMarker(latest, {
     radius: 10,
@@ -364,6 +443,7 @@ function ensureMap() {
   }).addTo(map);
   routeLayer = L.layerGroup().addTo(map);
   markerLayer = L.layerGroup().addTo(map);
+  placeLayer = L.layerGroup().addTo(map);
 }
 
 function timeAgo(timestamp) {
@@ -384,6 +464,20 @@ function accuracyQuality(accuracyMeters) {
   if (meters <= 25) return "Good";
   if (meters <= 75) return "Fair";
   return "Poor";
+}
+
+function historyLabel(ping) {
+  const movement = Number(ping.speedMetersPerSecond) > 1 ? "Moving" : "Stationary";
+  const coords = `${Number(ping.latitude).toFixed(5)}, ${Number(ping.longitude).toFixed(5)}`;
+  return `${movement} - ${accuracyLabel(ping.accuracyMeters)} - ${coords}`;
+}
+
+function accuracyLabel(accuracyMeters) {
+  const meters = Number(accuracyMeters);
+  if (!Number.isFinite(meters) || meters <= 0) return "Waiting for accurate location";
+  const rounded = Math.round(meters);
+  if (rounded <= 25) return `Precise location - accuracy ${rounded} m`;
+  return `Approximate location - accuracy ${rounded} m`;
 }
 
 function escapeHtml(value) {
@@ -410,6 +504,16 @@ async function createPairing(childName, childId = "") {
   serverStatus.classList.remove("error");
 }
 
+
+placeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await createPlace();
+  } catch (error) {
+    serverStatus.textContent = error.message;
+    serverStatus.classList.add("error");
+  }
+});
 addMemberForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const input = document.getElementById("memberName");
@@ -442,6 +546,8 @@ chooseChild.addEventListener("click", () => {
 });
 
 childBack.addEventListener("click", showWelcome);
+mapViewButton.addEventListener("click", () => setDashboardView("map"));
+setupViewButton.addEventListener("click", () => setDashboardView("setup"));
 
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -535,6 +641,7 @@ if (parentEmail) {
   authStatus.textContent = `Signed in as ${parentEmail}`;
 }
 renderAuthState();
+setDashboardView("map");
 loadChildren().catch((error) => {
   serverStatus.textContent = error.message;
   serverStatus.classList.add("error");
